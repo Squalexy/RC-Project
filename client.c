@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     strcpy(endServer, argv[1]);
     if (argv[1] != "193.136.212.243")
     {
-        erro("Endereço do servidor errado (interface externa de R3)";
+        erro("Endereço do servidor errado (interface externa de R3");
     }
     if ((hostPtr = gethostbyname(endServer)) == 0)
         erro("Não consegui obter endereço");
@@ -45,28 +45,18 @@ int main(int argc, char *argv[])
     while (1)
     {
         printf("Username: ");
-        scanf("%s\n", &username);
-        if (scanf == 1)
+        if (!fgets(username, sizeof(username), stdin))
         {
-            break;
-        }
-        else
-        {
-            printf("Wrong format for username.\n");
+            printf("Wrong format for username. Try again.\n");
         }
     }
 
     while (1)
     {
         printf("Password: ");
-        scanf("%s\n", &password);
-        if (scanf == 1)
+        if (!fgets(password, sizeof(password), stdin))
         {
-            break;
-        }
-        else
-        {
-            printf("Wrong format for password.\n");
+            printf("Wrong format for password. Try again.\n");
         }
     }
 
