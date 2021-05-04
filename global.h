@@ -1,3 +1,6 @@
+#ifndef GLOBAL_H
+#define GLOBAL_H
+
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
@@ -15,7 +18,19 @@
 #include "functions.c"
 
 #define MESSAGE_LEN 512
-
+#define CLIENTS_FILE "clients.txt"
 #define IP_SERVER "193.136.212.243"
 #define TRUE 1
 #define FALSE 0
+
+typedef struct {
+    char * user_id;
+    char * ip;
+    char * password;
+    char * clientServer;
+    char * p2p;
+    char * group;
+
+}user_t;
+
+#endif
