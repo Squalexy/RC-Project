@@ -1,7 +1,6 @@
 
 #include "server_config.h"
 
-
 //para tratar da administracao do servidor
 void server_config(char *port_config)
 {
@@ -33,7 +32,8 @@ void server_config(char *port_config)
 
     //clean finished child processes, avoiding zombies
     //must use WNOHANG or would block whenever a child process was working
-    while (waitpid(-1, NULL, WNOHANG) > 0);
+    while (waitpid(-1, NULL, WNOHANG) > 0)
+        ;
     //wait for new connection
     config = accept(fd_config_server, (struct sockaddr *)&config_addr, (socklen_t *)&config_addr_size);
     if (config > 0)
@@ -64,14 +64,17 @@ void process_config(int fd_config, struct sockaddr_in config_addr)
         }
         else
         {
-            char * token;
+            char *token;
             const char delim[2] = " ";
             token = strtok(command, delim);
             if (!strcmp(token, "ADD"))
             {
-                if (add_client(token, delim) == 0){
+                if (add_client(token, delim) == 0)
+                {
                     strcpy(send, "Continue");
-                }else{
+                }
+                else
+                {
                     strcpy(send, "Error");
                 }
             }
@@ -80,31 +83,21 @@ void process_config(int fd_config, struct sockaddr_in config_addr)
                 char *userId;
                 token = strtok(NULL, delim);
                 strcpy(userId, token);
+                delete_from_file(userId);
             }
             else
             {
                 //invalid command
             }
         }
-        write(fd_config, send, 1+strlen(send));
+        write(fd_config, send, 1 + strlen(send));
     } while (go = TRUE && nread > 0);
 }
 
-int add_client( char * token, const char delim[2]){
-    char *userId;
-    char *IP;
-    char *password;
-    char *client_server, p2p, group;
-    token = strtok(NULL, delim);
-    strcpy(userId, token);
-    token = strtok(NULL, delim);
-    strcpy(IP, token);
-    token = strtok(NULL, delim);
-    strcpy(password, token);
-    token = strtok(NULL, delim);
-    strcpy(client_server, token);
-    token = strtok(NULL, delim);
-    strcpy(p2p, token);
-    token = strtok(NULL, delim);
-    strcpy(group, token);
+int add_client(char *token, const char delim[2])
+{
+    char *string;
+    strcpy(string, token); //!!!!!!!!!!!!!VER ISTO
+    user_t *user = convert_to_user_struct(string);
+    add_register(user);
 }

@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     // ------------------ EXECUTAR PROGRAMA CLIENTE ------------------ //
 
-    execute_client(argc, endServer, hostPtr, addr_server, fd);
+    execute_client(argc, argv, endServer, hostPtr, addr_server, fd);
 
     // ------------------ AUTENTIFICAÇÃO ------------------ //
 
@@ -39,9 +39,9 @@ int main(int argc, char *argv[])
     if ((recv_len = recvfrom(fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
         error("Erro no recvfrom");
 
-    communication(fd);
-    buffer[recv_len] = '\0';
-    printf("%s\n", buffer);
+    printf("Authentication successful!\n");
+
+    communication(fd, addr_server, username);
 
     close(fd);
     return 0;
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 -------------------------------------- FUNÇÕES -------------------------------------
 ------------------------------------------------------------------------------------*/
 
-void execute_client(int argc, char *endServer, struct hostent *hostPtr, struct sockaddr_in addr_server, int fd)
+void execute_client(int argc, char *argv, char *endServer, struct hostent *hostPtr, struct sockaddr_in addr_server, int fd)
 {
     if (argc != 3)
         error("cliente <endereço do servidor> <porto>");
@@ -99,33 +99,113 @@ void authentication(int fd, struct sockaddr_in addr_server, char *username, char
     sendto(fd, (const char *)id_info, strlen(id_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
 }
 
-void communication(int server_fd)
+void communication(int server_fd, struct sockaddr_in addr_server, char *username)
 {
     printf("CONNECTED TO THE SERVER\n\n");
     int go = TRUE;
-    char command[MESSAGE_LEN];
-    int nread;
+    int recv_len, nread;
+    socklen_t slen = sizeof(addr_server);
+    char command[MESSAGE_LEN], command_group[MESSAGE_LEN], buffer[MESSAGE_LEN];
+    char user[16];
 
     do
     {
 
         input_menu();
         get_one_line(stdin, command, MESSAGE_LEN);
-        send_to_server(server_fd, command);
 
         // CLIENT-SERVER
         if (!strcmp(command, "1"))
         {
+            //? PEDIDO DE COMUNICAÇÃO
+
+            char c_s_info[MESSAGE_LEN] = "";
+            input_user();
+            get_one_line(stdin, user, 16);
+
+            snprintf(c_s_info, strlen(username) + strlen(user) + 1, username, "User %s is asking for CLIENT/SERVER communication with user %s.\n", username, user);
+            sendto(server_fd, (const char *)c_s_info, strlen(c_s_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
         }
 
         // P2P
         else if (!strcmp(command, "2"))
         {
+            //? PEDIDO DE COMUNICAÇÃO
+
+            char p2p_info[MESSAGE_LEN] = "";
+
+            snprintf(p2p_info, strlen(username), username, "User %d is asking for P2P communication.\n--> Send UDP address and port to client.\n");
+            sendto(server_fd, (const char *)p2p_info, strlen(p2p_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
+
+            //? RECEBER ENDEREÇO E PORTO UDP
+
+            recvfrom_nonblocking(server_fd);
+
+            if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+            {
+                error("Erro no recvfrom");
+            }
+
+            buffer[recv_len] = '\0';
+            printf("Received UDP address and port: %s\n", buffer);
+
+            //TODO: iniciar comunicação P2P
         }
 
         // GROUP
         else if (!strcmp(command, "3"))
         {
+
+            group_comm_create();
+            get_one_line(stdin, command_group, MESSAGE_LEN);
+
+            if (!strcmp(command_group, "1"))
+            {
+                //? PEDIDO DE COMUNICAÇÃO
+
+                char group_info[MESSAGE_LEN] = "";
+
+                snprintf(group_info, strlen(username), username, "User %d is asking to CREATE GROUP.\n--> Send group multicast address.\n");
+                sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
+
+                recvfrom_nonblocking(server_fd);
+
+                //? RECEBER ENDEREÇO MULTICAST
+
+                if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+                {
+                    error("Erro no recvfrom");
+                }
+
+                buffer[recv_len] = '\0';
+                printf("Received group multicast address: %s\n", buffer);
+
+                //TODO: iniciar comunicação grupo
+            }
+
+            else if (!strcmp(command_group, "2"))
+            {
+                //? PEDIDO DE COMUNICAÇÃO
+
+                char group_info[MESSAGE_LEN] = "";
+
+                //! Aqui não sei o que é preciso pedir ao servidor: nome do grupo ou endereço multicast do grupo?
+
+                snprintf(group_info, strlen(username), username, "User %d is asking to CREATE GROUP.\n--> Send group multicast address.\n");
+                sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
+
+                //? RECEBER O ENDEREÇO MULTICAST A USAR
+
+                if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+                {
+                    error("Erro no recvfrom");
+                }
+
+                buffer[recv_len] = '\0';
+                printf("Received group multicast address: %s\n", buffer);
+
+                //TODO: iniciar comunicação grupo
+            }
         }
 
         // EXIT
@@ -144,4 +224,13 @@ void recvfrom_nonblocking(int fd)
     read_timeout.tv_sec = 5;
     read_timeout.tv_usec = 0;
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
+}
+
+int received_from_server(int server_fd)
+{
+    char buffer[MESSAGE_LEN - 1];
+    int nread = read(server_fd, buffer, MESSAGE_LEN);
+    buffer[nread] = '\0';
+    printf("%s\n", buffer);
+    return nread;
 }
