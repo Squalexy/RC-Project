@@ -24,14 +24,6 @@
 #define TRUE 1
 #define FALSE 0
 
-typedef struct {
-    char * user_id;
-    char * ip;
-    char * password;
-    char * client_server;
-    char * p2p;
-    char * group;
 
-}user_t;
 
 #endif

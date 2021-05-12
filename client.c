@@ -61,7 +61,7 @@ void execute_client(int argc, char *argv, char *endServer, struct hostent *hostP
     {
         error("endereço tem que ser 193.136.212.243 (interface externa de R3");
     }
-    if ((hostPtr = gethostbyname(endServer)) == 0)
+    if ((hostPtr = gethostbyname(endServer)) == 0) // IP
         error("não consegui obter endereço");
 
     socklen_t slen = sizeof(addr_server);
@@ -70,7 +70,7 @@ void execute_client(int argc, char *argv, char *endServer, struct hostent *hostP
         error("socket");
 
     addr_server.sin_family = AF_INET;
-    addr_server.sin_port = htons((short)atoi(argv[2]));
+    addr_server.sin_port = htons((short)atoi(argv[2])); // PORT
     addr_server.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
 }
 
@@ -125,6 +125,19 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
             snprintf(c_s_info, strlen(username) + strlen(user) + 1, username, "User %s is asking for CLIENT/SERVER communication with user %s.\n", username, user);
             sendto(server_fd, (const char *)c_s_info, strlen(c_s_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
+
+            //? RECEBER CONFIRMACAO
+            recvfrom_nonblocking(server_fd);
+
+            if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+            {
+                error("Erro no recvfrom");
+            }
+
+            buffer[recv_len] = '\0';
+            printf("Confirmation received! You can start communicating with user %s.\n", username, user);
+
+            // TODO: iniciar comunicação client->server->client
         }
 
         // P2P
@@ -233,4 +246,29 @@ int received_from_server(int server_fd)
     buffer[nread] = '\0';
     printf("%s\n", buffer);
     return nread;
+}
+
+int start_communication(char *user_destination_ip, char *user_destination_port)
+{
+    int fd, recv_len;
+    char buffer[MESSAGE_LEN];
+    struct hostent *hostPtr;
+    struct sockaddr_in addr_user_destination;
+    socklen_t slen = sizeof(addr_user_destination);
+    char endDestination[100];
+
+    strcpy(endDestination, user_destination_ip);
+    if ((hostPtr = gethostbyname(endDestination)) == 0)
+        error("não consegui obter endereço");
+
+    socklen_t slen = sizeof(addr_user_destination);
+
+    if ((fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+        error("socket");
+
+    addr_user_destination.sin_family = AF_INET;
+    addr_user_destination.sin_port = htons((short)atoi(user_destination_port));
+    addr_user_destination.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
+
+    printf("**********\nCONNECTED TO USER %d\n**********\n", user_destination_ip);
 }

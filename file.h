@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <semaphore.h>
 #include "global.h"
+#include "server_config.h"
 
-#define DELIM "||"
+#define DELIM ";"
 sem_t mutex_registers;
 
 extern void delete_from_file(char *username);

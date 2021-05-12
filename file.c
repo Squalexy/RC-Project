@@ -1,7 +1,5 @@
 #include "file.h"
 
-#define LINESIZE 200
-
 void init_mutex_registers()
 {
     sem_init(&mutex_registers, 1, 1);
@@ -11,84 +9,115 @@ void close_mutex_registers()
 {
     sem_destroy(&mutex_registers);
 }
-
-void add_register(user_t *user)
+user_t * convert_to_user_struct(char *string)
 {
-    sem_wait(&mutex_registers);
-    FILE *registers = open(CLIENTS_FILE, "a");
-    fprintf(registers, "%s||%s||%s||%s||%s||%s", user->user_id, user->ip, user->password, user->client_server, user->p2p, user->group);
-    fclose(registers);
-    sem_post(&mutex_registers);
-}
-
-user_t *find_register(char *username)
-{
-    sem_wait(&mutex_registers);
-    user_t *user = NULL;
-    FILE *registers = fopen(CLIENTS_FILE, "r");
-    char line[250];
-    char *str, *token;
-    while (fgets(line, 250, registers) != NULL)
-    {
-        strcpy(str, line);
-        if ((token = strtok(token, DELIM) != NULL))
-        {
-            if (!strcmp(token, username))
-            {
-                user = convert_to_user_struct(line);
-                break;
-            }
-        }
-    }
-    fclose(registers);
-    sem_post(&mutex_registers);
-}
-
-user_t *convert_to_user_struct(char *string)
-{
-
+    printf(">>convert to struct\n");
     //!!!!!!!!!!!!!!!!!!!!!!!! FAZER VERIFICAÇÔES !!!!!!!!!!!!!!!!!!!!!!!!
     user_t *user = (user_t *)malloc(sizeof(user_t));
-    char *userId;
-    char *IP;
-    char *password;
-    char *client_server, p2p, group;
+    printf("after allocation\n");
     char *token;
-    token = strtok(string, DELIM);
+    if((token = strtok(NULL, DELIM))==NULL) 
+        return NULL;
+    printf("after first strtok");
     strcpy(user->user_id, token);
-    token = strtok(NULL, DELIM);
+    if((token = strtok(NULL, DELIM))==NULL) 
+        return NULL;
     strcpy(user->ip, token);
-    token = strtok(NULL, DELIM);
+    if((token = strtok(NULL, DELIM))==NULL) 
+        return NULL;
     strcpy(user->password, token);
-    token = strtok(NULL, DELIM);
+    if((token = strtok(NULL, DELIM))==NULL) 
+        return NULL;
     strcpy(user->client_server, token);
-    token = strtok(NULL, DELIM);
-    strcpy(user->p2p, token);
-    token = strtok(NULL, DELIM);
-    strcpy(user->group, token);
-
+    if((token = strtok(NULL, DELIM))==NULL) 
+        return NULL;
+    strcpy((char *) user->p2p, token);
+    if((token = strtok(NULL, DELIM))==NULL) 
+        return NULL;
+    strcpy((char *) user->group, token);
+    printf("<<end convert\n");
     return user;
 }
 
-void delete_from_file(char *username)
+user_t * find_register(char *username)
 {
+    user_t *user = NULL;
+    user_t * aux;
+    FILE *registers;
+    if((registers = fopen(CLIENTS_FILE, "rb")) == NULL){
+        return NULL;
+    }
+    while(fread(aux, sizeof(user_t), 1, registers) == 1){
+        if(strcmp(aux->user_id, username) == 0){
+            user = aux;
+            break;
+        }
+    }
+    fclose(registers);
+    return user;
+}
+/*
+    devolve 1 se correu tudo bem, 0 o contrario
+*/
+int add_register(user_t * user)
+{
+    sem_wait(&mutex_registers);
+    FILE * registers = fopen(CLIENTS_FILE, "ab");
+    if(find_register(user->user_id) != NULL || registers == NULL){
+        fclose(registers);
+        sem_post(&mutex_registers);
+        return 0;
+    }
+
+    fwrite(user, sizeof(user_t), 1, registers);
+    sem_post(&mutex_registers);
+    return 1;
+
+
+}
+
+/**
+ *
+ * @param username
+ * @return 1 if successfully, 0 otherwise
+ */
+int delete_from_file(char *username) {
+    sem_wait(&mutex_registers);
+    if (find_register(username) == NULL)
+        return 0;
     FILE *file1, *file2;
-    file1 = fopen(CLIENTS_FILE, "r");
-    file2 = fopen(AUX_FILE, "w");
-    char line[300];
-    char compare[300];
-    while (fgets(line, 300, file1) != NULL)
-    {
-        strcpy(compare, line);
-        char *token = strtok(compare, DELIM);
-        strcpy(compare, token);
-        if (strcmp(compare, username) != 0)
-        {
-            fputs(line, file2);
+    file1 = fopen(CLIENTS_FILE, "rb");
+    file2 = fopen(AUX_FILE, "wb");
+    if(file1 == NULL){
+        sem_post(&mutex_registers);
+        return 0;
+    }
+    if(file2 == NULL){
+        fclose(file1);
+        sem_post(&mutex_registers);
+        return 0;
+    }
+    user_t user;
+    while(fread(&user, sizeof(user_t), 1, file1) == 1){
+        if( strcmp(user.user_id, username) != 0){
+            fwrite(&user, sizeof(user_t), 1, file2);
         }
     }
     fclose(file1);
     fclose(file2);
-    remove(FILE1);
-    rename(AUX_FILE, FILE1);
+    remove(CLIENTS_FILE);
+    rename(AUX_FILE, CLIENTS_FILE);
+    sem_post(&mutex_registers);
+    return 1;
 }
+
+// !!!!!!!!!!!!! VER ISTO !!!!!!!!!!!!!!!!!!!
+long count_clients(FILE * registers){
+    fseek(registers, 0, SEEK_END);
+    long count = (long)(ftell(registers)/sizeof(user_t));
+    fclose(registers);
+    return count;
+}
+
+
+
