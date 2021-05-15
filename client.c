@@ -9,9 +9,11 @@
 
 #define PORT 3200
 
-/* ---------------------------------------------------------------------------------
----------------------------------------- MAIN --------------------------------------
-------------------------------------------------------------------------------------*/
+/*
+*-----------------------------------------------------------------------------------------------------------------------------------
+*--------------------------------------------------------------- MAIN -----------------------------------------------------------
+*-----------------------------------------------------------------------------------------------------------------------------------
+*/
 
 int main(int argc, char *argv[])
 {
@@ -41,15 +43,19 @@ int main(int argc, char *argv[])
 
     printf("Authentication successful!\n");
 
+    // ------------------ COMUNICACAÇÃO ------------------ //
+
     communication(fd, addr_server, username);
 
     close(fd);
     return 0;
 }
 
-/* ---------------------------------------------------------------------------------
--------------------------------------- FUNÇÕES -------------------------------------
-------------------------------------------------------------------------------------*/
+/*
+*-----------------------------------------------------------------------------------------------------------------------------------
+*--------------------------------------------------------------- FUNÇÕES -----------------------------------------------------------
+*-----------------------------------------------------------------------------------------------------------------------------------
+*/
 
 void execute_client(int argc, char *argv, char *endServer, struct hostent *hostPtr, struct sockaddr_in addr_server, int fd)
 {
@@ -101,26 +107,24 @@ void authentication(int fd, struct sockaddr_in addr_server, char *username, char
 
 void communication(int server_fd, struct sockaddr_in addr_server, char *username)
 {
-    printf("CONNECTED TO THE SERVER\n\n");
-    int go = TRUE;
-    int recv_len, nread;
+    printf("*********************\n*CONNECTED TO THE SERVER*\n*********************\n\n");
+    int go = TRUE, recv_len;
     socklen_t slen = sizeof(addr_server);
-    char command[MESSAGE_LEN], command_group[MESSAGE_LEN], buffer[MESSAGE_LEN];
-    char user[16];
+    char command[MESSAGE_LEN], command_group[MESSAGE_LEN], buffer[MESSAGE_LEN], user[16];
 
     do
     {
-
         input_menu();
         get_one_line(stdin, command, MESSAGE_LEN);
 
-        // CLIENT-SERVER
+        //* ---------------------------------------------------- CLIENT-SERVER --------------------------------------------------- *//
+
         if (!strcmp(command, "1"))
         {
             //? PEDIDO DE COMUNICAÇÃO
 
             char c_s_info[MESSAGE_LEN] = "";
-            input_user();
+            client_server_comm(); // menu
             get_one_line(stdin, user, 16);
 
             snprintf(c_s_info, strlen(username) + strlen(user) + 1, username, "User %s is asking for CLIENT/SERVER communication with user %s.\n", username, user);
@@ -138,9 +142,15 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
             printf("Confirmation received! You can start communicating with user %s.\n", username, user);
 
             // TODO: iniciar comunicação client->server->client
+
+            do{
+                get_one_line(stdin, c_s_info, MESSAGE_LEN);
+                sendto(server_fd, (const char *) c_s_info, strlen(c_s_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
+            } while(go);
         }
 
-        // P2P
+        //* --------------------------------------------------------- P2P --------------------------------------------------------- *//
+
         else if (!strcmp(command, "2"))
         {
             //? PEDIDO DE COMUNICAÇÃO
@@ -161,11 +171,14 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
             buffer[recv_len] = '\0';
             printf("Received UDP address and port: %s\n", buffer);
+            // TODO: ter variável para IP e variável para porto
 
-            //TODO: iniciar comunicação P2P
+            // TODO: iniciar comunicação P2P
+            // p2p_communication(ip, porto);
         }
 
-        // GROUP
+        //* -------------------------------------------------------- GROUP --------------------------------------------------------- *//
+
         else if (!strcmp(command, "3"))
         {
 
@@ -202,8 +215,6 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
                 char group_info[MESSAGE_LEN] = "";
 
-                //! Aqui não sei o que é preciso pedir ao servidor: nome do grupo ou endereço multicast do grupo?
-
                 snprintf(group_info, strlen(username), username, "User %d is asking to CREATE GROUP.\n--> Send group multicast address.\n");
                 sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
 
@@ -221,13 +232,14 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
             }
         }
 
-        // EXIT
+        //* ---------------------------------------------------------- EXIT --------------------------------------------------------- *//
+
         else if (!strcmp(command, "4"))
         {
             go = FALSE;
         }
 
-    } while (go && nread > 0);
+    } while (go);
 }
 
 void recvfrom_nonblocking(int fd)
@@ -248,9 +260,13 @@ int received_from_server(int server_fd)
     return nread;
 }
 
-int start_communication(char *user_destination_ip, char *user_destination_port)
+void client_server_communication(){
+    
+}
+
+int p2p_communication(char *user_destination_ip, char *user_destination_port)
 {
-    int fd, recv_len;
+    int user_destination_fd, recv_len;
     char buffer[MESSAGE_LEN];
     struct hostent *hostPtr;
     struct sockaddr_in addr_user_destination;
@@ -263,7 +279,7 @@ int start_communication(char *user_destination_ip, char *user_destination_port)
 
     socklen_t slen = sizeof(addr_user_destination);
 
-    if ((fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+    if ((user_destination_fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         error("socket");
 
     addr_user_destination.sin_family = AF_INET;
@@ -271,4 +287,28 @@ int start_communication(char *user_destination_ip, char *user_destination_port)
     addr_user_destination.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
 
     printf("**********\nCONNECTED TO USER %d\n**********\n", user_destination_ip);
+
+    int recv_len;
+    char message[MESSAGE_LEN];
+
+    do{
+        printf("Message: \n");
+        get_one_line(stdin, message, MESSAGE_LEN);
+
+        //* ENVIA MENSAGEM A USER
+        sendto(user_destination_fd, (const char*)message, strlen(message), 0, (const struct sockaddr *)&addr_user_destination, sizeof(addr_user_destination));
+
+        //? NÃO SEI SE ESTA PARTE É NECESSÁRIA
+        recvfrom_nonblocking(user_destination_fd);
+
+        //* RECEBE MENSAGEM DO USER
+        if ((recv_len = recvfrom(user_destination_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_user_destination, (socklen_t *)&slen)) == -1)
+            {
+                error("Erro no recvfrom");
+            }
+        buffer[recv_len] = '\0';
+        printf("%s\n", buffer);
+    } while(TRUE);
+
 }
+
