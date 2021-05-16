@@ -5,7 +5,7 @@
  * 
  * USO: >cliente <enderecoServidor>  <porto>
  * 
- * Porto a usar: 3100
+ * Porto a usar: 9000
  *******************************************************************************/
 #include <stdio.h>
 #include <sys/types.h>
@@ -17,7 +17,7 @@
 #include <netdb.h>
 #include <string.h>
 #include <ctype.h>
-
+#include "global.h"
 #define VALID "VALID"
 #define TRUE 1
 #define FALSE 0
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 
   strcpy(endServer, argv[1]);
   if ((hostPtr = gethostbyname(endServer)) == 0)
-    	erro("Nao consegui obter endereço");
+    	erro("Invalid IP address");
 
   bzero((void *) &addr, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   addr.sin_port = htons((short) atoi(argv[2]));
 
   if((fd = socket(AF_INET,SOCK_STREAM,0)) == -1)
-	  erro("socket");
+	  erro("Socket");
   if( connect(fd,(struct sockaddr *)&addr,sizeof (addr)) < 0)
 	  erro("Connect");
 
@@ -61,8 +61,8 @@ int main(int argc, char *argv[]) {
 void send_to_server(int fd, char *to_send);
 void erro(char *msg);
 int get_one_line(FILE * fich, char *linha, int lim);
-int received_invalid_number(int server_fd);
 int received_from_server(int server_fd);
+void receive_clients(int server_fd);
 
 
 
@@ -70,6 +70,7 @@ void communication(int server_fd){
   printf("CONNECTED TO THE SERVER\n");
   int go = TRUE;
   char command[BUF_SIZE];
+  char message[BUF_SIZE] = " ";
   int nread;
 
   do{
@@ -79,11 +80,55 @@ void communication(int server_fd){
 
     if(!strcmp(command, "QUIT")){
       go = FALSE;
-    }else
+    }else if(!strcmp(command, "LIST")){
+      receive_clients(server_fd);
+    }
+    else{
       nread = received_from_server(server_fd);
+    }
     
-  }while(go && nread>0); //termina quando manda para o servidor a mensagem "SAIR" ou quando não recebe dados do servidor
+  }while(go && nread>0); 
+  printf("COMMUNUCATION CLOSED\n");
 }
+
+
+void receive_clients(int server_fd){
+  char message[BUF_SIZE];
+  int can_go = 1;
+    do{
+      int n = read(server_fd, message, BUF_SIZE-1);
+      if(n < 0){
+        can_go = 0;
+        send_to_server(server_fd, "ERROR");
+      }
+      message[n] = '\0';
+      if(strcmp(message, "FINAL") == 0){
+        can_go = 0;
+      }
+      else{
+        printf("%s\n", message);
+        send_to_server(server_fd, "VALID");
+      }
+    }while(can_go);
+    printf("end list\n");
+}
+
+
+int received_invalid_number(int server_fd){
+  char buffer[BUF_SIZE];
+  int nread;
+  do{
+    nread = read(server_fd, buffer, BUF_SIZE-1);
+  }while(nread<0);
+
+  buffer[nread] = '\0';
+  if(strcmp(buffer, VALID)==0){
+    return FALSE;
+  }
+  printf("%s\n",buffer);
+  return TRUE;
+}
+
 
 int received_from_server(int server_fd){
   char buffer[BUF_SIZE-1];

@@ -3,13 +3,20 @@
 #include <stdio.h>
 #include <semaphore.h>
 #include "global.h"
-#include "server_config.h"
-
+#define MAX_LINE 200
 #define DELIM ";"
-sem_t mutex_registers;
+#define INVALID "---------"
 
-extern void delete_from_file(char *username);
-extern void add_register(user_t *user);
-extern user_t *convert_to_user_struct(char *string);
+sem_t mutex_registers;
+//user_t convert_user(char *string);
+int is_null_user(user_t user);
+long count_clients(FILE * registers);
+void list_file();
+int  delete_from_file(char * username);
+int add_to_file(user_t user);
+void init_mutex_registers();
+user_t convert_string_to_user(char * string);
+void close_mutex_registers();
+void convert_user_struct_in_string(user_t user, char * user_string);
 
 #endif
