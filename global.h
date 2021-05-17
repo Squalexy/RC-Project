@@ -20,17 +20,18 @@
 #define MESSAGE_LEN 512
 #define CLIENTS_FILE "clients.bin"
 #define AUX_FILE "aux.bin"
-#define IP_SERVER "127.0.0.1" //"193.136.212.243"
+#define IP_SERVER "193.136.212.243"
 #define TRUE 1
 #define FALSE 0
 
 
-typedef struct {
+typedef struct
+{
     char user_id[20];
-    char ip [38];
+    char ip[38];
     char password[20];
     char client_server[10];
     char p2p[10];
     char group[10];
-}user_t;
+} user_t;
 #endif

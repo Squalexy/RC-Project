@@ -2,7 +2,8 @@
 #define SERVER_CLIENTS_H
 
 #include "global.h"
+#include "file.h"
 
 void server_to_clients(char *);
 
-#endif SERVER_CLIENTS_H
+#endif 

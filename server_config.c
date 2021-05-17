@@ -33,13 +33,14 @@ void server_config(char *port_config)
     struct sockaddr_in addr_server_config, config_addr;
     int config_addr_size = sizeof(config_addr);
 
-    /**strcpy(endServer, IP_SERVER);
+    char * end_server;
+    strcpy(end_server, IP_SERVER);
     int fd_config_server, config, port;
     struct hostent *hostPtr;
 
-    if ((hostPtr = gethostbyname(endServer)) == 0)
+    if ((hostPtr = gethostbyname(end_server)) == 0)
        perror("Nao consegui obter endereço");
-    */
+    
     bzero((void *)&addr_server_config, sizeof(addr_server_config));
 
     addr_server_config.sin_family = AF_INET;

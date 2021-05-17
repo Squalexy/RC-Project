@@ -260,10 +260,6 @@ int received_from_server(int server_fd)
     return nread;
 }
 
-void client_server_communication(){
-    
-}
-
 int p2p_communication(char *user_destination_ip, char *user_destination_port)
 {
     int user_destination_fd, recv_len;
