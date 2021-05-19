@@ -108,7 +108,7 @@ int delete_from_file(char *username)
  * @param username the name to search
  * @return a pointer to the user or NULL
  */
-user_t *find_in_file(char *username)
+user_t * find_in_file(char *username)
 {
     printf(">>find in file\n");
     FILE *file = fopen(CLIENTS_FILE, "rb");
@@ -131,7 +131,7 @@ user_t *find_in_file(char *username)
     return NULL;
 }
 
-user_t *search_user(char *user_id)
+user_t * search_user(char *user_id)
 {
     sem_wait(&mutex_registers);
     user_t *user = find_in_file(user_id);
@@ -224,8 +224,6 @@ user_t convert_string_to_user(char *string)
     return user;
 }
 
-void convert_user_struct_in_string(user_t user, char *user_string)
-{
-
+void convert_user_struct_in_string(user_t user, char *user_string) {
     snprintf(user_string, MESSAGE_LEN - 1, "%s;%s;%s;%s;%s;%s", user.user_id, user.ip, user.password, user.client_server, user.p2p, user.group);
 }
