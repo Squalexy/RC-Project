@@ -24,8 +24,8 @@ int main(int argc, char *argv[])
     }
 
     // *************** MENU *************** //
-    printf("----------------- SERVER -----------------");
-    printf("IP ADDRESS: %s\n", IP_SERVER);
+    printf("----------------- SERVER -----------------\n");
+    printf("IP ADDRESS: %s\n", IP_SERVER_PRIVATE);
     printf("UDP PORT: %s\n", argv[1]);
     printf("TCP PORT: %s\n", argv[2]);
     pid_t config_pid, clients_pid;

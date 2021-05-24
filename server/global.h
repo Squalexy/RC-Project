@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include <sys/wait.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 #include <ctype.h>
 #include <signal.h>
 #include <time.h>
