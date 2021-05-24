@@ -13,11 +13,6 @@ void input_menu()
     "4 - Exit\n");
 }
 
-void client_server_comm()
-{
-    printf("Type the <user_id> you want to send a message to:\n");
-}
-
 void group_comm_create()
 {
     printf("Choose the option for group communication [1 - 2]:\n"

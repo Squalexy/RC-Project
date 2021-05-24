@@ -4,7 +4,7 @@
 #include <semaphore.h>
 #include "global.h"
 #define MAX_LINE 200
-#define DELIM ";"
+
 #define INVALID "---------"
 
 sem_t mutex_registers;

@@ -1,6 +1,7 @@
 #ifndef SERVER_CLIENTS_H
 #define SERVER_CLIENTS_H
 
+#include <signal.h>
 #include "global.h"
 #include "file.h"
 #define GROUPS_FILE "groups.bin"
