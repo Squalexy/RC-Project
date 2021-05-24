@@ -16,9 +16,9 @@ ${PROG}:	${OBJS}
 
 server.o: server.c server.h global.h
 
-server_clients.o: server_clients.c global.h
+server_clients.o: server_clients.c server.h global.h
 
-server_config.o: server_config.c global.h
+server_config.o: server_config.c server.h global.h
 
 file.o: file.c file.h global.h
 

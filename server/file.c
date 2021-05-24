@@ -108,7 +108,7 @@ int delete_from_file(char *username)
  * @param username the name to search
  * @return a pointer to the user or NULL
  */
-user_t * find_in_file(char *username)
+user_t *find_in_file(char *username)
 {
     printf(">>find in file\n");
     FILE *file = fopen(CLIENTS_FILE, "rb");
@@ -131,7 +131,7 @@ user_t * find_in_file(char *username)
     return NULL;
 }
 
-user_t * search_user(char *user_id)
+user_t *search_user(char *user_id)
 {
     sem_wait(&mutex_registers);
     user_t *user = find_in_file(user_id);
@@ -196,7 +196,7 @@ user_t convert_string_to_user(char *string)
     char group[10];
     char port[10];
     //user_id;ip;port;password;client-server;p2p;group
-    if (sscanf(string, "ADD;%[a-zA-Z0-9];%[0-9.];%[0-9]%[a-zA-Z0-9 +];%[yesno];%[yesno];%[yesno]", user_id, ip, port, password, client_server, p2p, group) != 6)
+    if (sscanf(string, "ADD;%[a-zA-Z0-9];%[0-9.];%[a-zA-Z0-9 +];%[yesno];%[yesno];%[yesno]", user_id, ip, password, client_server, p2p, group) != 6)
     {
         printf("invalid number of arguments\n");
         return return_invalid();
@@ -219,7 +219,7 @@ user_t convert_string_to_user(char *string)
     user_t user;
     strcpy(user.user_id, user_id);
     strcpy(user.ip, ip);
-    strcpy(user.port, port);
+    strcpy(user.port, "1234");
     strcpy(user.password, password);
     strcpy(user.client_server, client_server);
     strcpy(user.p2p, p2p);
@@ -227,6 +227,7 @@ user_t convert_string_to_user(char *string)
     return user;
 }
 
-void convert_user_struct_in_string(user_t user, char *user_string) {
-    snprintf(user_string, MESSAGE_LEN - 1, "%s;%s;%s;%s;%s;%s;%s", user.user_id, user.ip,user.port, user.password, user.client_server, user.p2p, user.group);
+void convert_user_struct_in_string(user_t user, char *user_string)
+{
+    snprintf(user_string, MESSAGE_LEN - 1, "%s;%s;%s;%s;%s;%s;%s", user.user_id, user.ip, user.port, user.password, user.client_server, user.p2p, user.group);
 }

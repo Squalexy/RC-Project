@@ -1,5 +1,7 @@
-
 #include "server.h"
+
+const char *mult_address[] = {"224.0.0.1", "224.0.0.2", "224.0.0.3", "224.0.0.4", "224.0.0.5", "224.0.0.6", "224.0.0.7", "224.0.0.8", "224.0.0.9", "224.0.0.10", "224.0.0.11", "224.0.0.12", "224.0.0.13", "224.0.0.14", "224.0.0.15", "224.0.0.16"};
+
 //************************ HANDLES CLIENTS REQUESTS ************************//
 // variables
 int fd_server;
@@ -33,6 +35,7 @@ void handle_sigint();
 
 void server_to_clients(char *port_clients)
 {
+
     nclients_activate = 0;
     number_groups = count_groups();
     // ************************ UDP ************************* //
@@ -42,18 +45,16 @@ void server_to_clients(char *port_clients)
     struct sockaddr_in addr_server, addr_client;
     socklen_t client_len = sizeof(addr_client);
     struct hostent *hostPtr;
-    char end_server[INET_ADDRSTRLEN]= "";
+    char end_server[INET_ADDRSTRLEN] = "";
     strcpy(end_server, IP_SERVER_PRIVATE);
     if ((hostPtr = gethostbyname(end_server)) == 0)
-       perror("Invalid IP");
+        perror("Invalid IP");
     addr_server.sin_family = AF_INET;
     addr_server.sin_port = htons((short)atoi(port_clients));
-    addr_server.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
+    addr_server.sin_addr.s_addr = htonl(INADDR_ANY); //((struct in_addr *)(hostPtr->h_addr))->s_addr;
 
     if ((fd_server = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         perror("Error in socket\n");
-
-    
 
     if (bind(fd_server, (struct sockaddr *)&addr_server, sizeof(addr_server)) == -1)
         perror("Error in bind");
