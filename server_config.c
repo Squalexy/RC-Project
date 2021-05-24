@@ -122,7 +122,7 @@ void list_clients(){
             break;
         received[nread]= '\0';
         if(strcmp(received, "ERROR") == 0){
-            printf("received error message from admin\n");
+            printf("Received error message from admin\n");
             break;
         }
             
