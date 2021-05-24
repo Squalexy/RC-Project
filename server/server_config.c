@@ -33,9 +33,9 @@ void server_config(char *port_config)
     struct sockaddr_in addr_server_config, config_addr;
     int config_addr_size = sizeof(config_addr);
 
-    char * end_server;
-    strcpy(end_server, IP_SERVER);
-    int fd_config_server, config, port;
+    char end_server[INET_ADDRSTRLEN]= "";
+    strcpy(end_server, IP_SERVER_PRIVATE);
+    int fd_config_server;
     struct hostent *hostPtr;
 
     if ((hostPtr = gethostbyname(end_server)) == 0)

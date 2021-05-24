@@ -41,13 +41,19 @@ void server_to_clients(char *port_clients)
     int fd_server;
     struct sockaddr_in addr_server, addr_client;
     socklen_t client_len = sizeof(addr_client);
+    struct hostent *hostPtr;
+    char end_server[INET_ADDRSTRLEN]= "";
+    strcpy(end_server, IP_SERVER_PRIVATE);
+    if ((hostPtr = gethostbyname(end_server)) == 0)
+       perror("Invalid IP");
+    addr_server.sin_family = AF_INET;
+    addr_server.sin_port = htons((short)atoi(port_clients));
+    addr_server.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
 
     if ((fd_server = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         perror("Error in socket\n");
 
-    addr_server.sin_family = AF_INET;
-    addr_server.sin_port = htons(port_clients);
-    addr_server.sin_addr.s_addr = htonl(IP_SERVER_PRIVATE); // !!!!!! CHECK IF
+    
 
     if (bind(fd_server, (struct sockaddr *)&addr_server, sizeof(addr_server)) == -1)
         perror("Error in bind");
@@ -108,7 +114,7 @@ void login_user(char *token)
     token = strtok(NULL, DELIM);
     strcpy(password, token);
 
-    user_t *user = search_user(user);
+    user_t *user = search_user(user_id);
 
     if (user != NULL && strcmp(user->password, password) == 0)
     {
@@ -133,7 +139,8 @@ void login_user(char *token)
  */
 int validate_communication(int type_communication, user_t user)
 {
-    int return_value;
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! CHECK THIS
+    int return_value = 0;
     switch (type_communication)
     {
     case 1: //client-server
@@ -156,7 +163,6 @@ int validate_communication(int type_communication, user_t user)
  */
 void p2p_request(char *token, user_t user)
 {
-    int type = 2;
     char user_id[SIZE];
     //checks if the user is authorized to make that type of communications
     if (validate_communication(2, user) == 0)
@@ -367,8 +373,8 @@ int find_group_in_file(char *group_name, group_t *group)
  */
 int add_group_to_file(group_t group)
 {
-    group_t *aux;
-    if (find_in_file(group.group_name, &aux))
+    group_t aux;
+    if (find_group_in_file(group.group_name, &aux))
         return 0;
 
     FILE *file = fopen(GROUPS_FILE, "ab");
@@ -403,7 +409,7 @@ void send_message(struct sockaddr_in addr, char *format, ...)
     va_start(arg, format);
     vsprintf(send, format, arg);
     va_end(arg);
-    send_to(fd_server, (const char *)send, strlen(send), 0, (struct sockaddr *)&addr, sizeof(addr));
+    sendto(fd_server, (const char *)send, strlen(send), 0, (struct sockaddr *)&addr, sizeof(addr));
 }
 
 /**
@@ -415,7 +421,7 @@ void send_error(char *type)
 {
     char send[MESSAGE_LEN] = "ERROR: ";
     strcat(send, type);
-    send_to(fd_server, (const char *)send, strlen(send), 0, (struct sockaddr *)&addr_client, sizeof(addr_client));
+    sendto(fd_server, (const char *)send, strlen(send), 0, (struct sockaddr *)&addr_client, sizeof(addr_client));
 }
 
 // ****************************** REGISTRATIONS LIST ******************************

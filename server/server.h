@@ -5,8 +5,7 @@
 #include "file.h"
 #include <stdlib.h>
 
-#define CLIENTS_FILE "clients.bin"
-#define AUX_FILE "aux.bin"
+
 #define IP_SERVER_PRIVATE "10.90.0.1"
 #define MAX_CLIENTS 4
 
@@ -32,13 +31,6 @@ typedef struct group
 #define P2P_PORT
 void server_to_clients(char *port_clients);
 
-typedef struct
-{
-    char group_name[SIZE];
-    char multicast_address[INET_ADDRSTRLEN];
-    //short port;
-    // user_t owner;
-} group_t;
 
 char mult_address[16][INET_ADDRSTRLEN] = {
     "224.0.0.1",
@@ -57,16 +49,5 @@ char mult_address[16][INET_ADDRSTRLEN] = {
     "224.0.0.14",
     "224.0.0.15",
     "224.0.0.16"};
-
-typedef struct
-{
-    char user_id[20];
-    char ip[INET_ADDRSTRLEN];
-    char password[20];
-    char client_server[10];
-    char p2p[10];
-    char group[10];
-    char port[10];
-} user_t;
 
 #endif
