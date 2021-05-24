@@ -14,8 +14,10 @@
 #include <ctype.h>
 #include <signal.h>
 #include <time.h>
+#include <pthread.h>
 
 #define MESSAGE_LEN 512
+#define PART_OF_MESSAGE_LEN 450
 #define GROUP_NAME_LEN 100
 #define IP_SERVER "193.136.212.243"
 #define ERROR "ERROR"

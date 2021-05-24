@@ -23,16 +23,12 @@ int main(int argc, char *argv[])
 
     // ------------------ DECLARAÇÕES VARIÁVEIS ------------------ //
 
-    int recv_len;
-    char buffer[MESSAGE_LEN];
-    struct hostent *hostPtr;
     struct sockaddr_in addr_server;
-    socklen_t slen = sizeof(addr_server);
     char endServer[100];
 
     // ------------------ EXECUTAR PROGRAMA CLIENTE ------------------ //
 
-    execute_client(argc, argv, endServer, hostPtr, addr_server, fd);
+    execute_client(argc, argv, endServer, addr_server, fd);
 
     // ------------------ AUTENTIFICAÇÃO ------------------ //
 
@@ -57,21 +53,21 @@ int main(int argc, char *argv[])
 *-----------------------------------------------------------------------------------------------------------------------------------
 */
 
-void execute_client(int argc, char *argv, char *endServer, struct hostent *hostPtr, struct sockaddr_in addr_server, int fd)
+void execute_client(int argc, char *argv[], char *endServer, struct sockaddr_in addr_server, int fd)
 {
+    struct hostent *hostPtr;
+
     if (argc != 3)
         error("cliente <endereço do servidor> <porto>");
 
     strcpy(endServer, argv[1]);
-    if (argv[1] != IP_SERVER)
+    if (!strcmp(argv[1], IP_SERVER))
     {
         error("endereço tem que ser 193.136.212.243 (interface externa de R3");
     }
 
     if ((hostPtr = gethostbyname(endServer)) == 0) // IP
         error("não consegui obter endereço");
-
-    socklen_t slen = sizeof(addr_server);
 
     if ((fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         error("socket");
@@ -85,7 +81,6 @@ int authentication(int fd, struct sockaddr_in addr_server, char *username, char 
 {
     int recv_len;
     char buffer[MESSAGE_LEN];
-    struct sockaddr_in addr_server;
     socklen_t slen = sizeof(addr_server);
 
     while (1)
@@ -122,9 +117,11 @@ int authentication(int fd, struct sockaddr_in addr_server, char *username, char 
         error("Erro no recvfrom");
         exit(1);
     }
+
     printf("%s", buffer);
     if (is_error(buffer))
     {
+        error("CLIENT_SERVER");
         return 0;
     }
     return 1;
@@ -132,14 +129,14 @@ int authentication(int fd, struct sockaddr_in addr_server, char *username, char 
 
 void communication(int server_fd, struct sockaddr_in addr_server, char *username)
 {
-    int go = TRUE, recv_len;
+    int recv_len;
     socklen_t slen = sizeof(addr_server);
     char command[MESSAGE_LEN], command_group[MESSAGE_LEN], buffer[MESSAGE_LEN], user[16];
 
     input_menu();
     get_one_line(stdin, command, MESSAGE_LEN);
     char c_s_info[MESSAGE_LEN];
-    char message[MESSAGE_LEN - 16];
+    char message[PART_OF_MESSAGE_LEN];
 
     //* ---------------------------------------------------- CLIENT-SERVER --------------------------------------------------- *//
 
@@ -170,22 +167,6 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
             snprintf(c_s_info, MESSAGE_LEN, "%s;%s;%s", SEND_MESSAGE, user, message);
             sendto(server_fd, (const char *)c_s_info, strlen(c_s_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
-
-            //? RECEBER CONFIRMACAO
-            recvfrom_nonblocking(server_fd);
-
-            if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
-            {
-                error("Erro no recvfrom");
-            }
-            buffer[recv_len] = '\0';
-            printf("%s", buffer);
-            if (is_error(buffer))
-            {
-                error("CLIENT/SERVER");
-                break;
-            }
-
         } while (1);
     }
 
@@ -200,7 +181,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
         printf("Type: <user_id_destination>\n");
         get_one_line(stdin, user, 16);
 
-        snprintf(p2p_info, strlen(username), "%s;%d", REQUEST_P2P, username);
+        snprintf(p2p_info, strlen(username), "%s;%s", REQUEST_P2P, username);
         sendto(server_fd, (const char *)p2p_info, strlen(p2p_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
 
         //? RECEBER ENDEREÇO E PORTO UDP
@@ -215,9 +196,10 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
         buffer[recv_len] = '\0';
 
         printf("%s", buffer);
-        if (is_error(buffer)){
-            error("P2P");
-            break;
+        if (is_error(buffer))
+        {
+            error("P2P\n");
+            exit(0);
         }
 
         printf("******\nReceived UDP address and port: %s\n******\n", buffer);
@@ -319,8 +301,6 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
         buffer[recv_len] = '\0';
 
-        if()
-
         // TODO: is error
         printf("Received group multicast address and port: %s\n", buffer); // multicast_adress; multicast_port
 
@@ -341,14 +321,14 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
         memset(&addr, 0, sizeof(addr));
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = inet_addr(group_ip_destination);
-        addr.sin_port = htons(group_port_destination);
+        addr.sin_port = htons((short)atoi(group_port_destination));
 
         int multicastTTL = 255;
         if (setsockopt(server_fd, IPPROTO_IP, IP_MULTICAST_TTL, (void *)&multicastTTL,
                        sizeof(multicastTTL)) < 0)
         {
             perror("socket opt");
-            return 1;
+            exit(1);
         }
 
         do
@@ -366,7 +346,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
             if (nbytes < 0)
             {
                 perror("sendto");
-                return 1;
+                break;
             }
         } while (1);
     }
@@ -380,13 +360,13 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
         if (nbytes < 0)
         {
             perror("sendto");
-            return 1;
+            exit(1);
         }
     }
 
     pthread_join(thread_id, NULL);
     printf("\nLeaving server communication...\n");
-    return 0;
+    exit(0);
 }
 
 void recvfrom_nonblocking(int fd)
@@ -396,15 +376,6 @@ void recvfrom_nonblocking(int fd)
     read_timeout.tv_sec = 5;
     read_timeout.tv_usec = 0;
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
-}
-
-int received_from_server(int server_fd)
-{
-    char buffer[MESSAGE_LEN - 1];
-    int nread = read(server_fd, buffer, MESSAGE_LEN);
-    buffer[nread] = '\0';
-    printf("%s\n", buffer);
-    return nread;
 }
 
 void error(char *msg)
@@ -419,7 +390,7 @@ int is_error(char *string)
 
     if (len_error > strlen(string))
         return 0;
-    char error[strlen(ERROR)];
+    char error[strlen(ERROR) + 1];
     strcpy(error, ERROR);
     for (unsigned int i = 0; i < len_error; i++)
     {
@@ -456,6 +427,12 @@ void *chat()
 
         buffer[MESSAGE_LEN] = '\0';
 
+        if (is_error(buffer))
+        {
+            printf("Server sent an error\n");
+            break;
+        }
+
         int hours, minutes, seconds;
         time_t now = time(NULL);
 
@@ -466,4 +443,35 @@ void *chat()
 
         printf("** MESSAGE RECEIVED **\n%02d:%02d:%02d : %s\n\n", hours, minutes, seconds, buffer);
     } while (1);
+    
+    pthread_exit(NULL);
+}
+
+int get_one_line(FILE *fich, char *linha, int lim)
+{
+    int c, i;
+    i = 0;
+    while (isspace(c = fgetc(fich)))
+        ;
+    if (c != EOF)
+    {
+        if (!iscntrl(c))
+            linha[i++] = c;
+    }
+    else
+        return c;
+    for (; i < lim - 1;)
+    {
+        c = fgetc(fich);
+        if (c == EOF)
+            return c;
+        if (c == '\n')
+            break;
+        if (!iscntrl(c))
+            linha[i++] = c;
+    }
+    linha[i] = 0;
+    while ((c != EOF) && (c != '\n'))
+        c = fgetc(fich);
+    return c;
 }
