@@ -15,7 +15,7 @@ void init();
 void clean();
 int main(int argc, char *argv[])
 {
-
+    signal(SIGINT, SIG_IGN);
     init();
     if (argc != 4)
     {
@@ -51,7 +51,6 @@ void init()
 {
     init_mutex_registers();
 }
-void clean()
-{
+void clean() {
     close_mutex_registers();
 }

@@ -10,9 +10,12 @@
 
 #define PORT 3200
 
+pthread_t thread_id;
+int fd;
+
 /*
 *-----------------------------------------------------------------------------------------------------------------------------------
-*--------------------------------------------------------------- MAIN -----------------------------------------------------------
+*--------------------------------------------------------------- MAIN --------------------------------------------------------------
 *-----------------------------------------------------------------------------------------------------------------------------------
 */
 int main(int argc, char *argv[])
@@ -20,7 +23,7 @@ int main(int argc, char *argv[])
 
     // ------------------ DECLARAÇÕES VARIÁVEIS ------------------ //
 
-    int fd, recv_len;
+    int recv_len;
     char buffer[MESSAGE_LEN];
     struct hostent *hostPtr;
     struct sockaddr_in addr_server;
@@ -35,7 +38,8 @@ int main(int argc, char *argv[])
 
     char username[16], password[16];
 
-    while (authentication(fd, addr_server, username, password) == 0);
+    while (authentication(fd, addr_server, username, password) == 0)
+        ;
 
     printf("*********************\nCONNECTED TO THE SERVER\n*********************\n\n");
 
@@ -79,6 +83,11 @@ void execute_client(int argc, char *argv, char *endServer, struct hostent *hostP
 
 int authentication(int fd, struct sockaddr_in addr_server, char *username, char *password)
 {
+    int recv_len;
+    char buffer[MESSAGE_LEN];
+    struct sockaddr_in addr_server;
+    socklen_t slen = sizeof(addr_server);
+
     while (1)
     {
         printf("Username: ");
@@ -113,8 +122,9 @@ int authentication(int fd, struct sockaddr_in addr_server, char *username, char 
         error("Erro no recvfrom");
         exit(1);
     }
-    printf("%s", buffer) if (is_error(buffer));
-    if(is_error(buffer){
+    printf("%s", buffer);
+    if (is_error(buffer))
+    {
         return 0;
     }
     return 1;
@@ -126,26 +136,37 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
     socklen_t slen = sizeof(addr_server);
     char command[MESSAGE_LEN], command_group[MESSAGE_LEN], buffer[MESSAGE_LEN], user[16];
 
-    do
+    input_menu();
+    get_one_line(stdin, command, MESSAGE_LEN);
+    char c_s_info[MESSAGE_LEN];
+    char message[MESSAGE_LEN - 16];
+
+    //* ---------------------------------------------------- CLIENT-SERVER --------------------------------------------------- *//
+
+    if (!strcmp(command, "1"))
     {
-        input_menu();
-        get_one_line(stdin, command, MESSAGE_LEN);
-        char c_s_info[MESSAGE_LEN];
-        char message[MESSAGE_LEN - 16];
-
-        //* ---------------------------------------------------- CLIENT-SERVER --------------------------------------------------- *//
-
-        if (!strcmp(command, "1"))
+        //! CRIAR THREAD AQUI
+        pthread_create(&thread_id, NULL, chat, NULL);
+        do
         {
-
             //? PEDIDO DE COMUNICAÇÃO
             strcpy(c_s_info, "");
             strcpy(message, "");
+            char exit[] = "EXIT!";
 
-            printf("Type: <user_id_destination>\n");
+            printf("Type: <user_id_destination> or <EXIT!> to quit\n");
             get_one_line(stdin, user, 16);
-            printf("Type: <message>\n");
+            if (strcmp(user, exit) == 0)
+            {
+                break;
+            }
+
+            printf("Type: <message> or <EXIT!> to quit\n");
             get_one_line(stdin, message, MESSAGE_LEN - 16);
+            if (strcmp(message, exit) == 0)
+            {
+                break;
+            }
 
             snprintf(c_s_info, MESSAGE_LEN, "%s;%s;%s", SEND_MESSAGE, user, message);
             sendto(server_fd, (const char *)c_s_info, strlen(c_s_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
@@ -158,184 +179,214 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
                 error("Erro no recvfrom");
             }
             buffer[recv_len] = '\0';
-
-            if(is_error(buffer))
-                printf()
-        }
-
-        //* --------------------------------------------------------- P2P --------------------------------------------------------- *//
-
-        else if (!strcmp(command, "2"))
-        {
-            //? PEDIDO DE COMUNICAÇÃO
-
-            char p2p_info[MESSAGE_LEN] = "";
-
-            printf("Type: <user_id_destination>\n");
-            get_one_line(stdin, user, 16);
-
-            snprintf(p2p_info, strlen(username), "%s;%d", REQUEST_P2P, username);
-            sendto(server_fd, (const char *)p2p_info, strlen(p2p_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
-
-            //? RECEBER ENDEREÇO E PORTO UDP
-
-            recvfrom_nonblocking(server_fd);
-
-            if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+            printf("%s", buffer);
+            if (is_error(buffer))
             {
-                error("Erro no recvfrom");
+                error("CLIENT/SERVER");
+                break;
             }
 
-            buffer[recv_len] = '\0';
+        } while (1);
+    }
 
-            printf("******\nReceived UDP address and port: %s\n******\n", buffer);
+    //* --------------------------------------------------------- P2P --------------------------------------------------------- *//
 
-            char *token;
-            token = strtok(buffer, ";");
-            char p2p_ip_destination[16] = "";
-            strcpy(p2p_ip_destination, token);
-            token = strtok(NULL, ";");
-            char p2p_port_destination[6] = "";
-            strcpy(p2p_port_destination, token);
+    else if (!strcmp(command, "2"))
+    {
+        //? PEDIDO DE COMUNICAÇÃO
 
-            //? voltar a criar config
+        char p2p_info[MESSAGE_LEN] = "";
 
-            struct hostent *hostPtr;
+        printf("Type: <user_id_destination>\n");
+        get_one_line(stdin, user, 16);
 
-            if ((hostPtr = gethostbyname(p2p_ip_destination)) == 0)
-                error("não consegui obter endereço");
+        snprintf(p2p_info, strlen(username), "%s;%d", REQUEST_P2P, username);
+        sendto(server_fd, (const char *)p2p_info, strlen(p2p_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
 
-            struct sockaddr_in addr_p2p;
-            addr_p2p.sin_family = AF_INET;
-            addr_p2p.sin_port = htons((short)atoi(p2p_port_destination));
-            addr_p2p.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
+        //? RECEBER ENDEREÇO E PORTO UDP
 
-            do
-            {
-                char exit[] = "EXIT!";
-                printf("Type a message: <message> to send or <EXIT!> to quit\n");
-                get_one_line(stdin, message, MESSAGE_LEN - 16);
-                if (strcmp(message, exit) == 0)
-                {
-                    break;
-                }
-                sendto(server_fd, (const char *)message, strlen(message), 0, (const struct sockaddr *)&addr_p2p, sizeof(addr_p2p));
-            } while (go);
+        recvfrom_nonblocking(server_fd);
+
+        if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+        {
+            error("Erro no recvfrom");
         }
 
-        //* -------------------------------------------------------- GROUP --------------------------------------------------------- *//
+        buffer[recv_len] = '\0';
 
-        else if (!strcmp(command, "3"))
-        {
-            char group_info[MESSAGE_LEN];
-            char group_name[GROUP_NAME_LEN];
-
-            //? PEDIDO DE COMUNICAÇÃO
-
-            strcpy(group_info, "");
-            printf("Type: <group_name> you wanna create\n");
-            strcpy(group_name, "");
-            snprintf(group_info, strlen(username), "%s;%s", CREATE_GROUP, group_name);
-            sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
-
-            recvfrom_nonblocking(server_fd);
-
-            //? RECEBER ENDEREÇO MULTICAST
-
-            if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
-            {
-                error("Erro no recvfrom");
-            }
-
-            buffer[recv_len] = '\0';
-            printf("Received group multicast address: %s\n", buffer);
+        printf("%s", buffer);
+        if (is_error(buffer)){
+            error("P2P");
+            break;
         }
 
-        else if (!strcmp(command_group, "4"))
+        printf("******\nReceived UDP address and port: %s\n******\n", buffer);
+
+        //! CRIAR THREAD AQUI
+        pthread_create(&thread_id, NULL, chat, NULL);
+
+        char *token;
+        token = strtok(buffer, ";");
+        char p2p_ip_destination[16] = "";
+        strcpy(p2p_ip_destination, token);
+        token = strtok(NULL, ";");
+        char p2p_port_destination[6] = "";
+        strcpy(p2p_port_destination, token);
+
+        //? voltar a criar config
+
+        struct hostent *hostPtr;
+
+        if ((hostPtr = gethostbyname(p2p_ip_destination)) == 0)
+            error("não consegui obter endereço");
+
+        struct sockaddr_in addr_p2p;
+        addr_p2p.sin_family = AF_INET;
+        addr_p2p.sin_port = htons((short)atoi(p2p_port_destination));
+        addr_p2p.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
+
+        do
         {
-            char group_info[MESSAGE_LEN];
-            char group_name[GROUP_NAME_LEN];
-
-            //? PEDIDO DE COMUNICAÇÃO
-
-            strcpy(group_info, "");
-            strcpy(group_name, "");
-            printf("Type: <group_name> you want to access\n");
-            get_one_line(stdin, group_name, GROUP_NAME_LEN);
-
-            snprintf(group_info, strlen(username), "%s:%s", ACCESS_GROUP, group_name);
-            sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
-
-            recvfrom_nonblocking(server_fd);
-
-            //? RECEBER O ENDEREÇO MULTICAST A USAR
-
-            if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+            char exit[] = "EXIT!";
+            printf("Type a message: <message> to send or <EXIT!> to quit\n");
+            get_one_line(stdin, message, MESSAGE_LEN - 16);
+            if (strcmp(message, exit) == 0)
             {
-                error("Erro no recvfrom");
+                break;
             }
+            sendto(server_fd, (const char *)message, strlen(message), 0, (const struct sockaddr *)&addr_p2p, sizeof(addr_p2p));
+        } while (1);
+    }
 
-            buffer[recv_len] = '\0';
-            printf("Received group multicast address and port: %s\n", buffer); // multicast_adress; multicast_port
+    //* -------------------------------------------------------- GROUP --------------------------------------------------------- *//
 
-            char *token;
-            token = strtok(buffer, ";");
-            char group_ip_destination[16] = "";
-            strcpy(group_ip_destination, token);
-            token = strtok(NULL, ";");
-            char group_port_destination[6] = "";
-            strcpy(group_port_destination, token);
+    else if (!strcmp(command, "3"))
+    {
+        char group_info[MESSAGE_LEN];
+        char group_name[GROUP_NAME_LEN];
 
-            //? iniciar comunicação grupo
+        //? PEDIDO DE COMUNICAÇÃO
 
-            struct sockaddr_in addr;
-            memset(&addr, 0, sizeof(addr));
-            addr.sin_family = AF_INET;
-            addr.sin_addr.s_addr = inet_addr(group_ip_destination);
-            addr.sin_port = htons(group_port_destination);
+        strcpy(group_info, "");
+        strcpy(group_name, "");
+        printf("Type: <group_name> you wanna create\n");
+        get_one_line(stdin, group_name, GROUP_NAME_LEN);
 
-            int multicastTTL = 255;
-            if (setsockopt(server_fd, IPPROTO_IP, IP_MULTICAST_TTL, (void *)&multicastTTL,
-                           sizeof(multicastTTL)) < 0)
-            {
-                perror("socket opt");
-                return 1;
-            }
+        snprintf(group_info, strlen(group_info), "%s;%s", CREATE_GROUP, group_name);
+        sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
 
-            do
-            {
-                char exit[] = "EXIT!";
-                strcpy(message, "");
-                printf("Type: <message> to send to group or <EXIT!> to quit\n");
-                get_one_line(stdin, message, MESSAGE_LEN - 16);
-                if (strcmp(message, exit) == 0)
-                {
-                    break;
-                }
-                int nbytes = sendto(server_fd, message, strlen(message), 0, (struct sockaddr *)&addr, sizeof(addr));
+        recvfrom_nonblocking(server_fd);
 
-                if (nbytes < 0)
-                {
-                    perror("sendto");
-                    return 1;
-                }
-            } while (go);
+        //? RECEBER ENDEREÇO MULTICAST
+
+        if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
+        {
+            error("Erro no recvfrom");
         }
 
-        //* ---------------------------------------------------------- EXIT --------------------------------------------------------- *//
+        buffer[recv_len] = '\0';
 
-        else if (!strcmp(command, "5"))
+        //! CRIAR THREAD AQUI
+        pthread_create(&thread_id, NULL, chat, NULL);
+
+        // TODO: is error
+        printf("Received group multicast address: %s\n", buffer);
+    }
+
+    else if (!strcmp(command_group, "4"))
+    {
+        char group_info[MESSAGE_LEN];
+        char group_name[GROUP_NAME_LEN];
+
+        //? PEDIDO DE COMUNICAÇÃO
+
+        strcpy(group_info, "");
+        strcpy(group_name, "");
+        printf("Type: <group_name> you want to access\n");
+        get_one_line(stdin, group_name, GROUP_NAME_LEN);
+
+        snprintf(group_info, strlen(group_info), "%s:%s", ACCESS_GROUP, group_name);
+        sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
+
+        recvfrom_nonblocking(server_fd);
+
+        //? RECEBER O ENDEREÇO MULTICAST A USAR
+
+        if ((recv_len = recvfrom(server_fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
         {
-            int nbytes = sendto(server_fd, DISCONNECT, strlen(DISCONNECT), 0, (struct sockaddr *)&addr_server, sizeof(addr_server));
+            error("Erro no recvfrom");
+        }
+
+        buffer[recv_len] = '\0';
+
+        if()
+
+        // TODO: is error
+        printf("Received group multicast address and port: %s\n", buffer); // multicast_adress; multicast_port
+
+        //! CRIAR THREAD AQUI
+        pthread_create(&thread_id, NULL, chat, &addr_server);
+
+        char *token;
+        token = strtok(buffer, ";");
+        char group_ip_destination[16] = "";
+        strcpy(group_ip_destination, token);
+        token = strtok(NULL, ";");
+        char group_port_destination[6] = "";
+        strcpy(group_port_destination, token);
+
+        //? iniciar comunicação grupo
+
+        struct sockaddr_in addr;
+        memset(&addr, 0, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = inet_addr(group_ip_destination);
+        addr.sin_port = htons(group_port_destination);
+
+        int multicastTTL = 255;
+        if (setsockopt(server_fd, IPPROTO_IP, IP_MULTICAST_TTL, (void *)&multicastTTL,
+                       sizeof(multicastTTL)) < 0)
+        {
+            perror("socket opt");
+            return 1;
+        }
+
+        do
+        {
+            char exit[] = "EXIT!";
+            strcpy(message, "");
+            printf("Type: <message> to send to group or <EXIT!> to quit\n");
+            get_one_line(stdin, message, MESSAGE_LEN - 16);
+            if (strcmp(message, exit) == 0)
+            {
+                break;
+            }
+            int nbytes = sendto(server_fd, message, strlen(message), 0, (struct sockaddr *)&addr, sizeof(addr));
 
             if (nbytes < 0)
             {
                 perror("sendto");
                 return 1;
             }
-        }
+        } while (1);
+    }
 
-    } while (go);
+    //* ---------------------------------------------------------- EXIT --------------------------------------------------------- *//
+
+    else if (!strcmp(command, "5"))
+    {
+        int nbytes = sendto(server_fd, DISCONNECT, strlen(DISCONNECT), 0, (struct sockaddr *)&addr_server, sizeof(addr_server));
+
+        if (nbytes < 0)
+        {
+            perror("sendto");
+            return 1;
+        }
+    }
+
+    pthread_join(thread_id, NULL);
+    printf("\nLeaving server communication...\n");
+    return 0;
 }
 
 void recvfrom_nonblocking(int fd)
@@ -386,4 +437,33 @@ void input_menu()
            "3 - Create group\n"
            "4 - Join group\n"
            "5 - Exit\n");
+}
+
+void *chat()
+{
+    struct sockaddr_in addr;
+    int recv_len;
+    socklen_t slen = sizeof(addr);
+    char buffer[MESSAGE_LEN];
+
+    do
+    {
+        recvfrom_nonblocking(fd);
+        if ((recv_len = recvfrom(fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr, (socklen_t *)&slen)) == -1)
+        {
+            error("Erro no recvfrom");
+        }
+
+        buffer[MESSAGE_LEN] = '\0';
+
+        int hours, minutes, seconds;
+        time_t now = time(NULL);
+
+        struct tm *local = localtime(&now);
+        hours = local->tm_hour;
+        minutes = local->tm_min;
+        seconds = local->tm_sec;
+
+        printf("** MESSAGE RECEIVED **\n%02d:%02d:%02d : %s\n\n", hours, minutes, seconds, buffer);
+    } while (1);
 }

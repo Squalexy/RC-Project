@@ -18,7 +18,6 @@ void create_multicast_group(char *token, user_t user);
 void disconnect_client(user_t user, int pos);
 
 // groups file
-int add_group(user_t user, char *address, short port, char *group_name);
 int find_group_in_file(char *group_name, group_t *group);
 int add_group_to_file(group_t group);
 int count_groups();
@@ -36,7 +35,7 @@ void server_to_clients(char *port_clients)
 {
     nclients_activate = 0;
     number_groups = count_groups();
-        // ************************ UDP ************************* //
+    // ************************ UDP ************************* //
 
     printf("Server for clients [%d]\n", getpid());
     int fd_server;
@@ -150,7 +149,7 @@ int validate_communication(int type_communication, user_t user)
 
 /**
  * @brief Function to handle the P2P request
- * Validates the received information and if there is no problem sends to the client the Ip and port that he requested
+ * Validates the received information and if there is no problem sends to the client the Ip  he requested
  * In case of any error, send theh clients a error message
  * @param token Token withe the information about the request
  * @param user Structure of the user who made the request
@@ -184,7 +183,7 @@ void p2p_request(char *token, user_t user)
         send_error("User not found");
     else
     {
-        send_message(addr_client, "%s;%s", dest->ip, dest->port);
+        send_message(addr_client, "%s;%s", REQUEST_P2P, dest->ip);
     }
     free(dest);
 }
@@ -245,7 +244,7 @@ void client_server_request(char *token, user_t user)
 
     send_message(destination_client, message);
 
-    send_message(addr_client, "MEESSAGE SEND TO DESTINATION");
+    send_message(addr_client, "%s;MEESSAGE SEND TO DESTINATION", SEND_MESSAGE);
 }
 
 /**
@@ -278,7 +277,7 @@ void group_acces_request(char *token, user_t user)
         send_error("Group not found");
         return;
     }
-    send_message(addr_client, "%s;%s;%s", group.group_name, group.multicast_address, group.port);
+    send_message(addr_client, "%s;%s", ACCESS_GROUP, group.multicast_address);
 }
 
 /**
@@ -321,7 +320,7 @@ void create_multicast_group(char *token, user_t user)
     strcpy(new_group.group_name, group_name);
     number_groups++;
     add_group_to_file(new_group);
-    send_message(addr_client, "%s", new_group.multicast_address);
+    send_message(addr_client, "%s;%s", CREATE_GROUP, new_group.multicast_address);
 }
 /**
  * @brief Deletes a client from the list of activated clients

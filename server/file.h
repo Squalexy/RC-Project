@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <semaphore.h>
 #include "global.h"
+#include "server.h"
 #define MAX_LINE 200
 
 #define INVALID "---------"

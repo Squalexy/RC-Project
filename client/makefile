@@ -1,5 +1,5 @@
 CC		= gcc
-FLAGS	= -Wall -g -O
+FLAGS	= -pthread -D_REENTRANT -Wall -g -O
 OBJS	= client.o
 PROG	= client
 

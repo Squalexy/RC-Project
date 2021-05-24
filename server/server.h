@@ -32,11 +32,11 @@ typedef struct group
 #define P2P_PORT
 void server_to_clients(char *port_clients);
 
-typedef struct group
+typedef struct
 {
     char group_name[SIZE];
     char multicast_address[INET_ADDRSTRLEN];
-    short port;
+    //short port;
     // user_t owner;
 } group_t;
 
