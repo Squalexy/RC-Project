@@ -26,11 +26,30 @@ int main(int argc, char *argv[])
     struct sockaddr_in addr_server;
     char endServer[100];
 
-    // ------------------ EXECUTAR PROGRAMA CLIENTE ------------------ //
+    //* ------------------ EXECUTAR PROGRAMA CLIENTE ------------------ //
 
-    execute_client(argc, argv, endServer, addr_server, fd);
+    struct hostent *hostPtr;
 
-    // ------------------ AUTENTIFICAÇÃO ------------------ //
+    if (argc != 3)
+        error("cliente <endereço do servidor> <porto>");
+
+    strcpy(endServer, argv[1]);
+    if (!strcmp(argv[1], IP_SERVER))
+    {
+        error("endereço tem que ser 193.136.212.243 (interface externa de R3");
+    }
+
+    if ((hostPtr = gethostbyname(endServer)) == 0) // IP
+        error("não consegui obter endereço");
+
+    if ((fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+        error("socket");
+
+    addr_server.sin_family = AF_INET;
+    addr_server.sin_port = htons((short)atoi(argv[2])); // PORT
+    addr_server.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
+
+    //* ------------------ AUTENTIFICAÇÃO ------------------ //
 
     char username[16], password[16];
 
@@ -52,30 +71,8 @@ int main(int argc, char *argv[])
 *--------------------------------------------------------------- FUNÇÕES -----------------------------------------------------------
 *-----------------------------------------------------------------------------------------------------------------------------------
 */
+    
 
-void execute_client(int argc, char *argv[], char *endServer, struct sockaddr_in addr_server, int fd)
-{
-    struct hostent *hostPtr;
-
-    if (argc != 3)
-        error("cliente <endereço do servidor> <porto>");
-
-    strcpy(endServer, argv[1]);
-    if (!strcmp(argv[1], IP_SERVER))
-    {
-        error("endereço tem que ser 193.136.212.243 (interface externa de R3");
-    }
-
-    if ((hostPtr = gethostbyname(endServer)) == 0) // IP
-        error("não consegui obter endereço");
-
-    if ((fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-        error("socket");
-
-    addr_server.sin_family = AF_INET;
-    addr_server.sin_port = htons((short)atoi(argv[2])); // PORT
-    addr_server.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
-}
 
 int authentication(int fd, struct sockaddr_in addr_server, char *username, char *password)
 {
@@ -83,35 +80,27 @@ int authentication(int fd, struct sockaddr_in addr_server, char *username, char 
     char buffer[MESSAGE_LEN];
     socklen_t slen = sizeof(addr_server);
 
-    while (1)
-    {
-        printf("Username: ");
-        if (!fgets(username, sizeof(username), stdin))
-        {
-            printf("Formato errado do username. Tente novamente...\n");
-            continue;
-        }
-        break;
-    }
+    printf("Username: ");
+    get_one_line(stdin, username, 16);
+  
+    printf("Password: ");
+    get_one_line(stdin, password, 16);
 
-    while (1)
-    {
-        printf("Password: ");
-        if (!fgets(password, sizeof(password), stdin))
-        {
-            printf("Formato errado da password. Tente novamente...\n");
-            continue;
-        }
-        break;
-    }
+    remove_end_line(username);
+    remove_end_line(password);
 
-    char id_info[strlen(username) + strlen(password) + 1];
-    snprintf(id_info, strlen(username) + strlen(password) + 1, "%s;%s;%s", LOGIN, username, password);
+    printf("--> Username: \"%s\"\n", username);
+    printf("--> Password: \"%s\"\n", password);
+
+    char id_info[MESSAGE_LEN];
+    printf("Before snprintf...\n");
+    snprintf(id_info, MESSAGE_LEN, "%s;%s;%s", LOGIN, username, password);
+    printf("\nMessage sent: %s\n", id_info);
     sendto(fd, (const char *)id_info, strlen(id_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
 
     // ------------------ RECEBER RESPOSTA ------------------ //
     recvfrom_nonblocking(fd);
-
+    printf("\nWaiting to receive message from server...\n");
     if ((recv_len = recvfrom(fd, buffer, MESSAGE_LEN, 0, (struct sockaddr *)&addr_server, (socklen_t *)&slen)) == -1)
     {
         error("Erro no recvfrom");
@@ -135,6 +124,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
     input_menu();
     get_one_line(stdin, command, MESSAGE_LEN);
+    remove_end_line(command);
     char c_s_info[MESSAGE_LEN];
     char message[PART_OF_MESSAGE_LEN];
 
@@ -153,6 +143,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
             printf("Type: <user_id_destination> or <EXIT!> to quit\n");
             get_one_line(stdin, user, 16);
+            remove_end_line(user);
             if (strcmp(user, exit) == 0)
             {
                 break;
@@ -160,6 +151,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
             printf("Type: <message> or <EXIT!> to quit\n");
             get_one_line(stdin, message, MESSAGE_LEN - 16);
+            remove_end_line(message);
             if (strcmp(message, exit) == 0)
             {
                 break;
@@ -180,6 +172,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
 
         printf("Type: <user_id_destination>\n");
         get_one_line(stdin, user, 16);
+        remove_end_line(user);
 
         snprintf(p2p_info, strlen(username), "%s;%s", REQUEST_P2P, username);
         sendto(server_fd, (const char *)p2p_info, strlen(p2p_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
@@ -232,6 +225,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
             char exit[] = "EXIT!";
             printf("Type a message: <message> to send or <EXIT!> to quit\n");
             get_one_line(stdin, message, MESSAGE_LEN - 16);
+            remove_end_line(message);
             if (strcmp(message, exit) == 0)
             {
                 break;
@@ -253,6 +247,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
         strcpy(group_name, "");
         printf("Type: <group_name> you wanna create\n");
         get_one_line(stdin, group_name, GROUP_NAME_LEN);
+        remove_end_line(group_name);
 
         snprintf(group_info, strlen(group_info), "%s;%s", CREATE_GROUP, group_name);
         sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
@@ -286,6 +281,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
         strcpy(group_name, "");
         printf("Type: <group_name> you want to access\n");
         get_one_line(stdin, group_name, GROUP_NAME_LEN);
+        remove_end_line(group_name);
 
         snprintf(group_info, strlen(group_info), "%s:%s", ACCESS_GROUP, group_name);
         sendto(server_fd, (const char *)group_info, strlen(group_info), 0, (const struct sockaddr *)&addr_server, sizeof(addr_server));
@@ -337,6 +333,7 @@ void communication(int server_fd, struct sockaddr_in addr_server, char *username
             strcpy(message, "");
             printf("Type: <message> to send to group or <EXIT!> to quit\n");
             get_one_line(stdin, message, MESSAGE_LEN - 16);
+            remove_end_line(message);
             if (strcmp(message, exit) == 0)
             {
                 break;
@@ -474,4 +471,12 @@ int get_one_line(FILE *fich, char *linha, int lim)
     while ((c != EOF) && (c != '\n'))
         c = fgetc(fich);
     return c;
+}
+
+void remove_end_line(char *string)
+{
+    while (*string && *string != '\n' && *string != '\r')
+        string++;
+
+    *string = '\0';
 }

@@ -5,11 +5,11 @@ const char *mult_address[] = {"224.0.0.1", "224.0.0.2", "224.0.0.3", "224.0.0.4"
 //************************ HANDLES CLIENTS REQUESTS ************************//
 // variables
 int fd_server;
-struct sockaddr_in addr_client;
+
 int nclients_activate;
 user_t active_clients[MAX_CLIENTS];
 int number_groups;
-
+struct sockaddr_in addr_client;
 // handle communications
 void login_user(char *token);
 int validate_communication(int type_communication, user_t user);
@@ -25,8 +25,9 @@ int add_group_to_file(group_t group);
 int count_groups();
 
 // send messages
-void send_message(struct sockaddr_in addr, char *format, ...);
+void send_message(struct sockaddr_in addr, char * send);
 void send_error(char *type);
+void recvfrom_nonblocking(int fd);
 
 //registrations list
 int find_user(char *ip, user_t *user);
@@ -35,27 +36,27 @@ void handle_sigint();
 
 void server_to_clients(char *port_clients)
 {
-
+    
+    printf("SERVER TO CLIENTS\n");
     nclients_activate = 0;
     number_groups = count_groups();
-    // ************************ UDP ************************* //
-
-    printf("Server for clients [%d]\n", getpid());
-    int fd_server;
-    struct sockaddr_in addr_server, addr_client;
+    struct sockaddr_in addr_server;
     socklen_t client_len = sizeof(addr_client);
     struct hostent *hostPtr;
     char end_server[INET_ADDRSTRLEN] = "";
     strcpy(end_server, IP_SERVER_PRIVATE);
-    if ((hostPtr = gethostbyname(end_server)) == 0)
-        perror("Invalid IP");
-    addr_server.sin_family = AF_INET;
-    addr_server.sin_port = htons((short)atoi(port_clients));
-    addr_server.sin_addr.s_addr = htonl(INADDR_ANY); //((struct in_addr *)(hostPtr->h_addr))->s_addr;
 
     if ((fd_server = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
         perror("Error in socket\n");
 
+
+    if ((hostPtr = gethostbyname(end_server)) == 0)
+        perror("Invalid IP");
+    addr_server.sin_family = AF_INET;
+    addr_server.sin_port = htons(atoi(port_clients));
+    addr_server.sin_addr.s_addr = htonl(INADDR_ANY); //((struct in_addr *)(hostPtr->h_addr))->s_addr;
+
+    
     if (bind(fd_server, (struct sockaddr *)&addr_server, sizeof(addr_server)) == -1)
         perror("Error in bind");
 
@@ -63,14 +64,18 @@ void server_to_clients(char *port_clients)
     char buffer[MESSAGE_LEN];
     char *token;
     int rclen;
-
+    printf("COMMUNICATIONS\n");
     while (TRUE)
     {
-        if ((rclen = recvfrom(fd_server, buffer, MESSAGE_LEN - 1, 0, (struct sockaddr *)&addr_client, (socklen_t *)&client_len)) == -1)
+        printf("iterate...\n");
+        recvfrom_nonblocking(fd_server);
+        if ((rclen = recvfrom(fd_server, buffer, MESSAGE_LEN , 0, (struct sockaddr *)&addr_client, (socklen_t *)&client_len)) == -1)
             perror("Error in recvfrom");
 
         buffer[rclen] = '\0';
-
+        //sendto(fd_server, (const char *)"FUCK THIS", strlen("FUCK THIS"), 0, (const struct sockaddr *)&addr_client, sizeof(addr_client));
+        
+        printf("NEW REQUEST: %s\n", buffer);
         token = strtok(buffer, DELIM);
         if (!strcmp(token, LOGIN))
         {
@@ -96,6 +101,7 @@ void server_to_clients(char *port_clients)
             create_multicast_group(token, user);
         else if (!strcmp(token, DISCONNECT))
             disconnect_client(user, pos);
+        
     }
 }
 
@@ -111,22 +117,41 @@ void login_user(char *token)
     char password[SIZE];
 
     token = strtok(NULL, DELIM);
+    if (token == NULL)
+    {
+        send_error("Invalid request format");
+        printf("error in format\n");
+        return;
+    }
     strcpy(user_id, token);
     token = strtok(NULL, DELIM);
-    strcpy(password, token);
-
-    user_t *user = search_user(user_id);
-
-    if (user != NULL && strcmp(user->password, password) == 0)
+    if (token == NULL)
     {
-        send_message(addr_client, "COMMUNICATIONS:\nClient-Server: %s; P2P: %s; Group: %s", user->client_server, user->p2p, user->group);
+        send_error("Invalid request format");
+        printf("error in format\n");
+        return;
     }
-
+    strcpy(password, token);
+    printf("Going to search the user %s\n", user_id);
+    user_t *user = search_user(user_id);
+    printf("--->COMMUNICATIONS:\nClient-Server: %s; P2P: %s; Group: %s\n", user->client_server, user->p2p, user->group);
+    if (user != NULL && strcmp(user->password, password) == 0 && nclients_activate + 1 <= MAX_CLIENTS)
+    {
+        active_clients[nclients_activate] = (*user);
+        nclients_activate++;
+        char send[MESSAGE_LEN];
+        snprintf(send, MESSAGE_LEN, "COMMUNICATIONS:\nClient-Server: %s; P2P: %s; Group: %s", user->client_server, user->p2p, user->group);
+        send_message(addr_client, send);
+        free(user);
+        return;
+    }
+    /*
     if (nclients_activate + 1 <= MAX_CLIENTS)
     {
         active_clients[nclients_activate] = (*user);
         nclients_activate++;
     }
+    */
     free(user);
     send_error("Invalid registration");
 }
@@ -190,7 +215,9 @@ void p2p_request(char *token, user_t user)
         send_error("User not found");
     else
     {
-        send_message(addr_client, "%s;%s", REQUEST_P2P, dest->ip);
+        char send[MESSAGE_LEN];
+        snprintf(send, MESSAGE_LEN, "%s;%s", REQUEST_P2P, dest->ip);
+        send_message(addr_client, send);
     }
     free(dest);
 }
@@ -250,8 +277,9 @@ void client_server_request(char *token, user_t user)
     destination_client.sin_addr.s_addr = ((struct in_addr *)(hostPTR->h_addr))->s_addr;
 
     send_message(destination_client, message);
-
-    send_message(addr_client, "%s;MEESSAGE SEND TO DESTINATION", SEND_MESSAGE);
+    char send[MESSAGE_LEN];
+    snprintf(send, MESSAGE_LEN, "%s;MEESSAGE SEND TO DESTINATION", SEND_MESSAGE);
+    send_message(addr_client, send);
 }
 
 /**
@@ -284,7 +312,9 @@ void group_acces_request(char *token, user_t user)
         send_error("Group not found");
         return;
     }
-    send_message(addr_client, "%s;%s", ACCESS_GROUP, group.multicast_address);
+    char send[MESSAGE_LEN];
+    snprintf(send, MESSAGE_LEN,"%s;%s", ACCESS_GROUP, group.multicast_address );
+    send_message(addr_client, send);
 }
 
 /**
@@ -327,7 +357,9 @@ void create_multicast_group(char *token, user_t user)
     strcpy(new_group.group_name, group_name);
     number_groups++;
     add_group_to_file(new_group);
-    send_message(addr_client, "%s;%s", CREATE_GROUP, new_group.multicast_address);
+    char send[MESSAGE_LEN];
+    snprintf(send, MESSAGE_LEN, "%s;%s", CREATE_GROUP, new_group.multicast_address);
+    send_message(addr_client, send);
 }
 /**
  * @brief Deletes a client from the list of activated clients
@@ -403,14 +435,19 @@ int count_groups()
  * @param format The format of the message to send
  * @param ... Arguments of the message
  */
-void send_message(struct sockaddr_in addr, char *format, ...)
+void send_message(struct sockaddr_in addr, char * send)
 {
+    printf(">>send message\n");
+    /*
     char send[MESSAGE_LEN];
     va_list arg;
     va_start(arg, format);
     vsprintf(send, format, arg);
     va_end(arg);
-    sendto(fd_server, (const char *)send, strlen(send), 0, (struct sockaddr *)&addr, sizeof(addr));
+    */
+    //sendto(fd_server, (const char *)send, strlen(send), 0, (struct sockaddr *)&addr_client, sizeof(addr_client));
+    sendto(fd_server, send, strlen(send), 0, (struct sockaddr *)&addr_client, sizeof(addr_client));
+    printf("<<send_message\n");
 }
 
 /**
@@ -420,9 +457,11 @@ void send_message(struct sockaddr_in addr, char *format, ...)
  */
 void send_error(char *type)
 {
+    printf(">>send error \n");
     char send[MESSAGE_LEN] = "ERROR: ";
     strcat(send, type);
     sendto(fd_server, (const char *)send, strlen(send), 0, (struct sockaddr *)&addr_client, sizeof(addr_client));
+    printf("<<send_error\n");
 }
 
 // ****************************** REGISTRATIONS LIST ******************************
@@ -454,4 +493,13 @@ void handle_sigint()
     close(fd_server);
     printf("CLIENTS SERVER IS CLOSING\n");
     exit(0);
+}
+
+void recvfrom_nonblocking(int fd)
+{
+    // Retirado de: https://stackoverflow.com/questions/15941005/making-recvfrom-function-non-blocking
+    struct timeval read_timeout;
+    read_timeout.tv_sec = 30;
+    read_timeout.tv_usec = 0;
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
 }

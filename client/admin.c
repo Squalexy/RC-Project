@@ -25,7 +25,35 @@
 #define BUF_SIZE 1024
 
 void erro(char *msg);
-void communication(int fd);
+int get_one_line(FILE *fich, char *linha, int lim)
+{
+    int c, i;
+    i = 0;
+    while (isspace(c = fgetc(fich)))
+        ;
+    if (c != EOF)
+    {
+        if (!iscntrl(c))
+            linha[i++] = c;
+    }
+    else
+        return c;
+    for (; i < lim - 1;)
+    {
+        c = fgetc(fich);
+        if (c == EOF)
+            return c;
+        if (c == '\n')
+            break;
+        if (!iscntrl(c))
+            linha[i++] = c;
+    }
+    linha[i] = 0;
+    while ((c != EOF) && (c != '\n'))
+        c = fgetc(fich);
+    return c;
+}
+void communicate(int fd);
 
 int main(int argc, char *argv[]) {
   char endServer[100];
@@ -52,7 +80,7 @@ int main(int argc, char *argv[]) {
   if( connect(fd,(struct sockaddr *)&addr,sizeof (addr)) < 0)
 	  erro("Connect");
 
-  communication(fd);
+  communicate(fd);
   printf("DISCONNECTED FROM THE SERVER\n");
   close(fd);
   exit(0);
@@ -66,7 +94,7 @@ void receive_clients(int server_fd);
 
 
 
-void communication(int server_fd){
+void communicate(int server_fd){
   printf("CONNECTED TO THE SERVER\n");
   int go = TRUE;
   char command[BUF_SIZE];
