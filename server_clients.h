@@ -5,7 +5,7 @@
 #include "global.h"
 #include "file.h"
 #define GROUPS_FILE "groups.bin"
-
+#define MAX_GROUPS 16
 void server_to_clients(char *port_clients);
 typedef struct node node_t;
 struct node {
@@ -20,4 +20,7 @@ typedef struct group {
     user_t owner;
 }group_t;
 
+
+
+// TODO: multicast addressess 
 #endif 

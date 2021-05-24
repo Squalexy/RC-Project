@@ -1,12 +1,13 @@
 
 #include "server_clients.h"
 //************************ HANDLES CLIENTS REQUESTS ************************//
-
+// variables
 int fd_server;
 struct sockaddr_in addr_client;
 int nclients_activate;
 user_t active_clients[MAX_CLIENTS];
-//handle communications
+int number_groups;
+// handle communications
 void login_user(char *token);
 int validate_communication(int type_communication, user_t user);
 void p2p_request(char *token, user_t user);
@@ -29,8 +30,8 @@ int find_user(char *ip, user_t *user);
 void delete_user(int pos);
 void handle_sigint();
 void server_to_clients(char *port_clients) {
-    int active_clients = 0;
-
+    nclients_activate = 0;
+    number_groups = 0;
     // ************************ UDP ************************* //
 
     printf("Server for clients [%d]\n", getpid());
@@ -275,6 +276,7 @@ void group_acces_request(char *token, user_t user)
     }
     send_message(addr_client, "%s;%s;%d", group.group_name, group.multicast_address, group.port);
 }
+
 /**
  * @brief Create a multicast group object
  * 
@@ -289,6 +291,7 @@ void create_multicast_group(char *token, user_t user)
         send_error("You are not authorized to this type of communication");
         return;
     }
+
     // if add_group == 1
     //send success message
     //else
