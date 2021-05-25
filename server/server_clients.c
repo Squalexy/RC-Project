@@ -36,7 +36,6 @@ void handle_sigint();
 
 void server_to_clients(char *port_clients)
 {
-    
     printf("SERVER TO CLIENTS\n");
     nclients_activate = 0;
     number_groups = count_groups();
@@ -54,7 +53,7 @@ void server_to_clients(char *port_clients)
         perror("Invalid IP");
     addr_server.sin_family = AF_INET;
     addr_server.sin_port = htons(atoi(port_clients));
-    addr_server.sin_addr.s_addr = htonl(INADDR_ANY); //((struct in_addr *)(hostPtr->h_addr))->s_addr;
+    addr_server.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
 
     
     if (bind(fd_server, (struct sockaddr *)&addr_server, sizeof(addr_server)) == -1)
@@ -92,20 +91,25 @@ void server_to_clients(char *port_clients)
         int pos;
         if ((pos = find_user(inet_ntoa(addr_client.sin_addr), &user)) < 0)
         {
+            printf("----->%d", pos);
             send_error("Needs login before");
             continue;
         }
-
+        printf("TYPES OF COMMUNICATIONS\n");
         if (!strcmp(token, REQUEST_P2P))
             p2p_request(token, user);
         else if (!strcmp(token, SEND_MESSAGE))
             client_server_request(token, user);
-        else if (!strcmp(token, ACCESS_GROUP))
+        else if (!strcmp(token, ACCESS_GROUP)){
+            printf(">>access group");
             group_acces_request(token, user);
+        }
         else if (!strcmp(token, CREATE_GROUP))
             create_multicast_group(token, user);
         else if (!strcmp(token, DISCONNECT))
             disconnect_client(user, pos);
+        else
+            send_error("Invalid command");
         
     }
 }
@@ -308,6 +312,7 @@ void client_server_request(char *token, user_t user)
  */
 void group_acces_request(char *token, user_t user)
 {
+    printf(">>>group_acess_request\n");
     //checks if the user is authorized to make that type of communications
     if (validate_communication(3, user) == 0)
     {
@@ -330,8 +335,10 @@ void group_acces_request(char *token, user_t user)
         send_error("Group not found");
         return;
     }
+    printf("after searching the group\n");
     char send[MESSAGE_LEN];
     snprintf(send, MESSAGE_LEN,"%s;%s", ACCESS_GROUP, group.multicast_address );
+    printf("GOING TO SEND: %s\n", send);
     send_message(addr_client, send);
 }
 

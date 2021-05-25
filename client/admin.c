@@ -29,6 +29,8 @@ void remove_end_line(char *string);
 int get_one_line(FILE *fich, char *linha, int lim);
 int is_error(char *string);
 int authentication(int fd, struct sockaddr_in addr_server);
+
+
 int main(int argc, char *argv[]) {
   char endServer[100];
   int fd;
@@ -41,22 +43,31 @@ int main(int argc, char *argv[]) {
   }
 
   strcpy(endServer, argv[1]);
+  if (strcmp(argv[1], IP_SERVER))
+  {
+      error("endereço tem que ser 193.136.212.243 (interface externa de R3");
+  }
+
   if ((hostPtr = gethostbyname(endServer)) == 0)
     	erro("Invalid IP address");
+
+  if((fd = socket(AF_INET,SOCK_STREAM,0)) == -1)
+	    erro("Socket");
 
   bzero((void *) &addr, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
   addr.sin_port = htons((short) atoi(argv[2]));
 
-  if((fd = socket(AF_INET,SOCK_STREAM,0)) == -1)
-	  erro("Socket");
+
   if( connect(fd,(struct sockaddr *)&addr,sizeof (addr)) < 0)
 	  erro("Connect");
 
-  //while (authentication(fd, addr) == 0);
+
+  //* ------------------ COMUNICACAÇÃO ------------------ //
+
   communicate(fd);
-  printf("DISCONNECTED FROM THE SERVER\n");
+  printf("\nDISCONNECTED FROM THE SERVER\n");
   close(fd);
   exit(0);
 }
@@ -67,46 +78,9 @@ int get_one_line(FILE * fich, char *linha, int lim);
 int received_from_server(int server_fd);
 void receive_clients(int server_fd);
 
-int authentication(int fd, struct sockaddr_in addr_server )
-{
-    char username[20], password[20];
-    socklen_t slen = sizeof(addr_server);
-
-    printf("Username: ");
-    get_one_line(stdin, username, 20);
-  
-    printf("Password: ");
-    get_one_line(stdin, password, 20);
-
-    remove_end_line(username);
-    remove_end_line(password);
-
-    printf("--> Username: \"%s\"\n", username);
-    printf("--> Password: \"%s\"\n", password);
-
-    char id_info[MESSAGE_LEN];
-    printf("Before snprintf...\n");
-    snprintf(id_info, MESSAGE_LEN, "%s;%s;%s", LOGIN, username, password);
-    printf("\nMessage sent: %s\n", id_info);
-    send_to_server(fd, id_info);
-
-    // ------------------ RECEBER RESPOSTA ------------------ //
-    char buffer[BUF_SIZE];
-    int nread;
-    do{
-    nread = read(fd, buffer, BUF_SIZE-1);
-    }while(nread<0);
-
-    printf("%s", buffer);
-    if (is_error(buffer))
-    {
-        return 0;
-    }
-    return 1;
-}
 
 void communicate(int server_fd){
-  printf("CONNECTED TO THE SERVER\n");
+  printf("\n*********************\nCONNECTED TO THE SERVER\n*********************\n\n");
   int go = TRUE;
   char command[BUF_SIZE];
   char message[BUF_SIZE] = " ";
@@ -127,7 +101,7 @@ void communicate(int server_fd){
     }
     
   }while(go && nread>0); 
-  printf("COMMUNUCATION CLOSED\n");
+  printf("COMMUNICATION CLOSED\n");
 }
 
 

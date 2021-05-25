@@ -113,7 +113,7 @@ int find_in_file(char *username, user_t * user)
     printf(">>find in file\n");
     FILE *file = fopen(CLIENTS_FILE, "rb");
     if (file == NULL)
-        return 0;
+        return NULL;
     //user_t *user = (user_t *)malloc(sizeof(user_t));
 
     while (/*!feof(file) &&*/ fread(user, sizeof(user_t), 1, file))
@@ -152,7 +152,6 @@ int add_to_file(user_t user)
     int result = find_in_file(user.user_id, &found);
     if (result != 0)
     {
-        //free(found);
         sem_post(&mutex_registers);
         return 0;
     }

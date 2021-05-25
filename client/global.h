@@ -22,6 +22,7 @@
 #define IP_SERVER "193.136.212.243"
 #define ERROR "ERROR"
 #define CLIENT_PORT 3100
+#define GROUP_PORT 5000
 #define TRUE 1
 #define FALSE 0
 #define SIZE 20

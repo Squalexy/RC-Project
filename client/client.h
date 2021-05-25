@@ -1,6 +1,8 @@
 #ifndef CLIENTS_H
 #define CLIENTS_H
 
+
+
 // client functions
 int authentication(int fd, struct sockaddr_in addr_server, char *username, char *password);
 void communication(int server_fd, struct sockaddr_in addr_server, char *username);

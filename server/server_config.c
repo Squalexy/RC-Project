@@ -46,7 +46,7 @@ void server_config(char *port_config) //TODO: RECEIVE CLIENTS FILE
     bzero((void *)&addr_server_config, sizeof(addr_server_config));
 
     addr_server_config.sin_family = AF_INET;
-    addr_server_config.sin_addr.s_addr = htonl(INADDR_ANY); //((struct in_addr *)(hostPtr->h_addr))->s_addr;
+    addr_server_config.sin_addr.s_addr = ((struct in_addr *)(hostPtr->h_addr))->s_addr;
     addr_server_config.sin_port = htons(atoi(port_config));
 
     if ((fd_config_server = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -65,7 +65,7 @@ void server_config(char *port_config) //TODO: RECEIVE CLIENTS FILE
         close(fd_config);
     }
     close(fd_config_server);
-    printf("SERVER IS CLOSING\n");
+    printf("SERVER  CONFIG IS CLOSING\n");
     return;
 }
 
@@ -75,15 +75,7 @@ void process_config(struct sockaddr_in config_addr)
     char command[MESSAGE_LEN - 1];
     char message[MAX_LINE - 1];
     int go = FALSE;
-    int counter;
-    char admin_user[20] = "admin1234";
-    char admin_password[20]="12345";
-    //TODO: LOGIN ADMIN
-    /*
-    while(go == FALSE){
-        nread = read(fd_config, command, MESSAGE_LEN - 1);
-    }
-    */
+    
     go = TRUE;
     do
     {
