@@ -108,13 +108,13 @@ int delete_from_file(char *username)
  * @param username the name to search
  * @return a pointer to the user or NULL
  */
-user_t *find_in_file(char *username)
+int find_in_file(char *username, user_t * user)
 {
     printf(">>find in file\n");
     FILE *file = fopen(CLIENTS_FILE, "rb");
     if (file == NULL)
-        return NULL;
-    user_t *user = (user_t *)malloc(sizeof(user_t));
+        return 0;
+    //user_t *user = (user_t *)malloc(sizeof(user_t));
 
     while (/*!feof(file) &&*/ fread(user, sizeof(user_t), 1, file))
     {
@@ -123,20 +123,20 @@ user_t *find_in_file(char *username)
         {
             printf("%s was found\n", username);
             fclose(file);
-            return user;
+            return 1;
         }
     }
     fclose(file);
-    free(user);
-    return NULL;
+    //free(user);
+    return 0;
 }
 
-user_t *search_user(char *user_id)
+int search_user(char *user_id, user_t * user)
 {
     sem_wait(&mutex_registers);
-    user_t *user = find_in_file(user_id);
+    int return_value = find_in_file(user_id, user);
     sem_post(&mutex_registers);
-    return user;
+    return return_value;
 }
 
 /**
@@ -148,10 +148,11 @@ int add_to_file(user_t user)
 {
     printf(">>add_to_file\n");
     sem_wait(&mutex_registers);
-    user_t *found = find_in_file(user.user_id);
-    if (found != NULL)
+    user_t found;
+    int result = find_in_file(user.user_id, &found);
+    if (result != 0)
     {
-        free(found);
+        //free(found);
         sem_post(&mutex_registers);
         return 0;
     }

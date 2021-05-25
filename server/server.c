@@ -30,13 +30,12 @@ int main(int argc, char *argv[])
     printf("TCP PORT: %s\n", argv[2]);
     pid_t config_pid, clients_pid;
     //for configurations
-    /*
+    
     if ((config_pid = fork()) == 0)
     {
         server_config(argv[2]);
         exit(0);
     }
-    */
     //hendles clients requests
     if ((clients_pid = fork()) == 0)
     {

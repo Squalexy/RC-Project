@@ -370,7 +370,7 @@ void recvfrom_nonblocking(int fd)
 {
     // Retirado de: https://stackoverflow.com/questions/15941005/making-recvfrom-function-non-blocking
     struct timeval read_timeout;
-    read_timeout.tv_sec = 5;
+    read_timeout.tv_sec = 15;
     read_timeout.tv_usec = 0;
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof read_timeout);
 }

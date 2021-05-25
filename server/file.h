@@ -18,5 +18,5 @@ void init_mutex_registers();
 user_t convert_string_to_user(char *string);
 void close_mutex_registers();
 void convert_user_struct_in_string(user_t user, char *user_string);
-user_t *search_user(char * user_id);
+int search_user(char * user_id, user_t * user);
 #endif

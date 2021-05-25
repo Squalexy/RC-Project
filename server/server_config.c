@@ -27,7 +27,7 @@ void remove_end_line(char *string)
 
     *string = '\0';
 }
-void server_config(char *port_config)
+void server_config(char *port_config) //TODO: RECEIVE CLIENTS FILE
 {
     signal(SIGINT, sigint_handler);
     /*************************TCP****************************/
@@ -69,13 +69,22 @@ void server_config(char *port_config)
     return;
 }
 
-void process_config(struct sockaddr_in config_addr)
+void process_config(struct sockaddr_in config_addr) 
 {
     int nread = 0;
     char command[MESSAGE_LEN - 1];
     char message[MAX_LINE - 1];
-    int go = TRUE;
-
+    int go = FALSE;
+    int counter;
+    char admin_user[20] = "admin1234";
+    char admin_password[20]="12345";
+    //TODO: LOGIN ADMIN
+    /*
+    while(go == FALSE){
+        nread = read(fd_config, command, MESSAGE_LEN - 1);
+    }
+    */
+    go = TRUE;
     do
     {
         nread = read(fd_config, command, MESSAGE_LEN - 1);
