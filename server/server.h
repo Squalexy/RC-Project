@@ -4,6 +4,9 @@
 #include "global.h"
 #include "file.h"
 #include <stdlib.h>
+/*************** PROJETO DE REDES DE COMUNICACAO ***************/
+// Joana Simoes, No 2019217013
+// Alexy de Almeida No 2019192123
 
 #define IP_SERVER_PRIVATE "10.90.0.1"
 #define MAX_CLIENTS 4

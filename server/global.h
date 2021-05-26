@@ -1,5 +1,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
+/*************** PROJETO DE REDES DE COMUNICACAO ***************/
+// Joana Simoes, No 2019217013
+// Alexy de Almeida No 2019192123
 
 #include <stdio.h>
 #include <string.h>
@@ -44,9 +47,9 @@ typedef struct
     char client_server[10];
     char p2p[10];
     char group[10];
-    char port[10];
 } user_t;
 
+char clients_file[SIZE];
 void error(char *msg);
 
 #endif

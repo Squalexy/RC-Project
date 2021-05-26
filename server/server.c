@@ -1,8 +1,6 @@
-/*
-porto UDP: 3200
-porto TCP: 3100
-*/
-
+/*************** PROJETO DE REDES DE COMUNICACAO ***************/
+// Joana Simoes, No 2019217013
+// Alexy de Almeida No 2019192123
 #include "global.h"
 #include "server.h"
 
@@ -22,7 +20,7 @@ int main(int argc, char *argv[])
         printf("server <client port> <config port> <register file>");
         exit(-1);
     }
-
+    strcpy(clients_file, argv[3]);
     // *************** MENU *************** //
     printf("----------------- SERVER -----------------\n");
     printf("IP ADDRESS: %s\n", IP_SERVER_PRIVATE);

@@ -1,3 +1,6 @@
+/*************** PROJETO DE REDES DE COMUNICACAO ***************/
+// Joana Simoes, No 2019217013
+// Alexy de Almeida No 2019192123
 #include "file.h"
 user_t convert_string_to_user(char *string);
 user_t return_invalid();
@@ -11,7 +14,6 @@ void close_mutex_registers()
 {
     sem_destroy(&mutex_registers);
 }
-
 long count_clients(FILE *registers)
 {
     printf(">>count clients\n");
@@ -50,7 +52,7 @@ void print_user(user_t user)
 void list_file()
 {
     sem_wait(&mutex_registers);
-    FILE *file = fopen(CLIENTS_FILE, "rb");
+    FILE *file = fopen(clients_file, "rb"); ///!!!!!!!
     user_t user;
     while (fread(&user, sizeof(user_t), 1, file))
     {
@@ -70,7 +72,7 @@ int delete_from_file(char *username)
 {
     printf(">>delete_from_file\n");
     sem_wait(&mutex_registers);
-    FILE *original = fopen(CLIENTS_FILE, "rb");
+    FILE *original = fopen(clients_file ,"rb");
     FILE *final = fopen("aux_file.bin", "wb");
     if (original == NULL)
     {
@@ -97,8 +99,8 @@ int delete_from_file(char *username)
     }
     fclose(original);
     fclose(final);
-    remove(CLIENTS_FILE);
-    rename("aux_file.bin", CLIENTS_FILE);
+    remove(clients_file);
+    rename("aux_file.bin", clients_file);
     sem_post(&mutex_registers);
     printf("<<delete from file\n");
     return was_found;
@@ -108,13 +110,13 @@ int delete_from_file(char *username)
  * @param username the name to search
  * @return a pointer to the user or NULL
  */
-user_t *find_in_file(char *username)
+int find_in_file(char *username, user_t * user)
 {
     printf(">>find in file\n");
-    FILE *file = fopen(CLIENTS_FILE, "rb");
+    FILE *file = fopen(clients_file, "rb");
     if (file == NULL)
-        return NULL;
-    user_t *user = (user_t *)malloc(sizeof(user_t));
+        return 0;
+    //user_t *user = (user_t *)malloc(sizeof(user_t));
 
     while (/*!feof(file) &&*/ fread(user, sizeof(user_t), 1, file))
     {
@@ -123,20 +125,20 @@ user_t *find_in_file(char *username)
         {
             printf("%s was found\n", username);
             fclose(file);
-            return user;
+            return 1;
         }
     }
     fclose(file);
-    free(user);
-    return NULL;
+    //free(user);
+    return 0;
 }
 
-user_t *search_user(char *user_id)
+int search_user(char *user_id, user_t * user)
 {
     sem_wait(&mutex_registers);
-    user_t *user = find_in_file(user_id);
+    int return_value = find_in_file(user_id, user);
     sem_post(&mutex_registers);
-    return user;
+    return return_value;
 }
 
 /**
@@ -148,14 +150,14 @@ int add_to_file(user_t user)
 {
     printf(">>add_to_file\n");
     sem_wait(&mutex_registers);
-    user_t *found = find_in_file(user.user_id);
-    if (found != NULL)
+    user_t found;
+    int result = find_in_file(user.user_id, &found);
+    if (result != 0)
     {
-        free(found);
         sem_post(&mutex_registers);
         return 0;
     }
-    FILE *file = fopen(CLIENTS_FILE, "ab");
+    FILE *file = fopen(clients_file, "ab");
     fwrite(&user, sizeof(user_t), 1, file);
     printf("User %s was added\n", user.user_id);
     fclose(file);
@@ -194,7 +196,7 @@ user_t convert_string_to_user(char *string)
     char client_server[10];
     char p2p[10];
     char group[10];
-    char port[10];
+
     //user_id;ip;port;password;client-server;p2p;group
     if (sscanf(string, "ADD;%[a-zA-Z0-9];%[0-9.];%[a-zA-Z0-9 +];%[yesno];%[yesno];%[yesno]", user_id, ip, password, client_server, p2p, group) != 6)
     {
@@ -219,7 +221,6 @@ user_t convert_string_to_user(char *string)
     user_t user;
     strcpy(user.user_id, user_id);
     strcpy(user.ip, ip);
-    strcpy(user.port, "1234");
     strcpy(user.password, password);
     strcpy(user.client_server, client_server);
     strcpy(user.p2p, p2p);
@@ -229,5 +230,5 @@ user_t convert_string_to_user(char *string)
 
 void convert_user_struct_in_string(user_t user, char *user_string)
 {
-    snprintf(user_string, MESSAGE_LEN - 1, "%s;%s;%s;%s;%s;%s;%s", user.user_id, user.ip, user.port, user.password, user.client_server, user.p2p, user.group);
+    snprintf(user_string, MESSAGE_LEN - 1, "%s;%s;%s;%s;%s;%s", user.user_id, user.ip, user.password, user.client_server, user.p2p, user.group);
 }

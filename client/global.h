@@ -1,5 +1,8 @@
 #ifndef GLOBAL_H
 #define GLOBAL_H
+/*************** PROJETO DE REDES DE COMUNICACAO ***************/
+// Joana Simoes, No 2019217013
+// Alexy de Almeida No 2019192123
 
 #include <stdio.h>
 #include <string.h>

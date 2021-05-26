@@ -1,5 +1,8 @@
 #ifndef FILE_HEADER
 #define FILE_HEADER
+/*************** PROJETO DE REDES DE COMUNICACAO ***************/
+// Joana Simoes, No 2019217013
+// Alexy de Almeida No 2019192123
 #include <stdio.h>
 #include <semaphore.h>
 #include "global.h"
@@ -18,5 +21,5 @@ void init_mutex_registers();
 user_t convert_string_to_user(char *string);
 void close_mutex_registers();
 void convert_user_struct_in_string(user_t user, char *user_string);
-user_t *search_user(char * user_id);
+int search_user(char *user_id, user_t * user);
 #endif

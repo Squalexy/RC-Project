@@ -1,8 +1,9 @@
-#ifndef FUNCTIONS_H
-#define FUNCTIONS_H
-
+#ifndef CLIENTS_H
+#define CLIENTS_H
+/*************** PROJETO DE REDES DE COMUNICACAO ***************/
+// Joana Simoes, No 2019217013
+// Alexy de Almeida No 2019192123
 // client functions
-void execute_client(int argc, char **argv, char *endServer, struct sockaddr_in addr_server, int fd);
 int authentication(int fd, struct sockaddr_in addr_server, char *username, char *password);
 void communication(int server_fd, struct sockaddr_in addr_server, char *username);
 void recvfrom_nonblocking(int fd);
@@ -12,5 +13,5 @@ int is_error(char *string);
 void input_menu();
 int get_one_line(FILE * fich, char *linha, int lim);
 void *chat();
-
+void remove_end_line(char *string);
 #endif
